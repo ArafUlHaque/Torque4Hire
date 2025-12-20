@@ -8,20 +8,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST['email'];
     $password = $_POST['password'];
 
-    // 1. Check if user exists
-    $sql = "SELECT * FROM users WHERE email = '$email'";
-    $result = $conn->query($sql);
+    $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
     if ($result->num_rows > 0) {
         $user = $result->fetch_assoc();
         
         if (password_verify($password, $user['password_hash'])) {
-            // 3. Set Session Variables
             $_SESSION['user_email'] = $user['email'];
             $_SESSION['user_name'] = $user['name'];
             
-            $check_owner = $conn->query("SELECT * FROM owners WHERE owner_email = '$email'");
-            if ($check_owner->num_rows > 0) {
+            $stmt_owner = $conn->prepare("SELECT * FROM owners WHERE owner_email = ?");
+            $stmt_owner->bind_param("s", $email);
+            $stmt_owner->execute();
+            $result_owner = $stmt_owner->get_result();
+
+            if ($result_owner->num_rows > 0) {
                 $_SESSION['role'] = 'OWNER';
                 header("Location: add_machinery.php");
             } else {
@@ -30,10 +34,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
             exit();
         } else {
-            $message = "Invalid Password!";
+            $message = "Incorrect Password!";
         }
     } else {
-        $message = "User not found!";
+        $message = "User not found! Please register first.";
     }
 }
 ?>
@@ -41,16 +45,53 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <!DOCTYPE html>
 <html>
 <head>
-<title>Login</title>
-<link rel="stylesheet" href="style.css">
+    <title>Login - Torque4Hire</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .show-pass-wrapper {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            margin-bottom: 15px;
+            color: #666;
+        }
+        .show-pass-wrapper input {
+            margin: 0 8px 0 0;
+            width: auto;
+        }
+    </style>
 </head>
 <body>
-    <h2>Login</h2>
-    <p style="color:red;"><?php echo $message; ?></p>
+
     <form method="POST" action="">
-        Email: <input type="email" name="email" required><br><br>
-        Password: <input type="password" name="password" required><br><br>
+        <h2 style="margin-top: 0;">Login</h2>
+        
+        <p style="color:red;text-align:center;font-weight:bold;"><?php echo $message; ?></p>
+        
+        <label>Email:</label>
+        <input type="email" name="email" placeholder="Enter your email" required>
+
+        <label>Password:</label>
+        <input type="password" name="password" id="passwordInput" placeholder="Enter your password" required>
+
+        <div class="show-pass-wrapper">
+            <input type="checkbox" onclick="togglePassword()"> Show Password
+        </div>
+
         <button type="submit">Login</button>
+        
+        <a href="register.php">Don't have an account? Register here</a>
     </form>
+
+    <script>
+        function togglePassword() {
+            var x = document.getElementById("passwordInput");
+            if (x.type === "password") {
+                x.type = "text";
+            } else {
+                x.type = "password";
+            }
+        }
+    </script>
 </body>
 </html>
