@@ -1,8 +1,8 @@
 <?php
 $servername = "localhost";
 $username = "root";
-$password = "";
-$dbname = "heavy_hire_db";
+$password = ""; 
+$dbname = "torque4hire_db"; 
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 
