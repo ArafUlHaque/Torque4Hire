@@ -105,12 +105,15 @@ $result = $conn->query($sql);
 <body>
 
     <div class="navbar">
-        <h2>Torque4Hire</h2>
-        <div>
-            <span>Welcome, <b><?php echo htmlspecialchars($_SESSION['user_name']); ?></b></span>
-            <a href="logout.php" style="margin-left: 15px; color: red;">Logout</a>
-        </div>
+    <h2>Torque4Hire</h2>
+    <div>
+        <span>Welcome, <b><?php echo htmlspecialchars($_SESSION['user_name']); ?></b></span>
+        
+        <a href="my_rentals.php" style="margin-left: 15px; text-decoration: underline;">My Rentals</a>
+        
+        <a href="logout.php" style="margin-left: 15px; color: red;">Logout</a>
     </div>
+</div>
 
     <h3>Available Machines</h3>
 
