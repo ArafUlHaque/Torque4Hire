@@ -11,18 +11,22 @@ $message = "";
 $categories = $conn->query("SELECT * FROM machine_categories");
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $owner_email = $_SESSION['user_email'];
+    $owner_email = $_SESSION['user_email']; 
     $model_name = $_POST['model_name'];
     $category_id = $_POST['category_id'];
     $daily_rate = $_POST['daily_rate'];
     
-    $stmt = $conn->prepare("INSERT INTO machinery (owner_email, category_id, model_name, daily_rate, status) VALUES (?, ?, ?, ?, 'AVAILABLE')");
-    $stmt->bind_param("sisd", $owner_email, $category_id, $model_name, $daily_rate);
-
-    if ($stmt->execute()) {
-        $message = "Machine added successfully!";
+    if ($daily_rate < 0) {
+        $message = "Error: Daily rate cannot be negative!";
     } else {
-        $message = "Error: " . $conn->error;
+        $stmt = $conn->prepare("INSERT INTO machinery (owner_email, category_id, model_name, daily_rate, status) VALUES (?, ?, ?, ?, 'AVAILABLE')");
+        $stmt->bind_param("sisd", $owner_email, $category_id, $model_name, $daily_rate);
+
+        if ($stmt->execute()) {
+            $message = "Machine added successfully!";
+        } else {
+            $message = "Error: " . $conn->error;
+        }
     }
 }
 ?>
@@ -81,7 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </select>
 
         <label>Daily Rate (BDT/USD):</label>
-        <input type="number" step="0.01" name="daily_rate" placeholder="0.00" required>
+        <input type="number" step="0.01" min="0" name="daily_rate" placeholder="0.00" required>
 
         <button type="submit">Add Machine</button>
         

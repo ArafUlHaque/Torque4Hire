@@ -133,7 +133,7 @@ $result = $conn->query($sql);
                 
                 <div class="price">$<?php echo $row['daily_rate']; ?> / day</div>
                 
-                <a href="#" class="rent-btn" onclick="alert('Booking Feature chole ashbe soon!')">Rent Now</a>
+                <a href="rent_machine.php?id=<?php echo $row['machine_id']; ?>" class="rent-btn">Rent Now</a>
             </div>
 
         <?php 
