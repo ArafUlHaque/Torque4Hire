@@ -1,22 +1,12 @@
 <?php
-// 1. START SESSION
-// We need to access the logged-in user's data (Name, Email, Role)
 session_start();
-
-// 2. CONNECT TO DATABASE
 include 'db_connect.php';
 
-// 3. SECURITY CHECK
-// If the user is NOT logged in OR they are NOT a Renter, kick them out.
-// This prevents unauthorized access via the URL bar.
 if (!isset($_SESSION['user_email']) || $_SESSION['role'] != 'RENTER') {
-    header("Location: login.php"); // Redirect to login
-    exit(); // Stop code execution immediately
+    header("Location: login.php"); 
+    exit(); 
 }
 
-// 4. FETCH DATA (The "JOIN" Query)
-// We select machinery details (m.*) AND the category name (c.category_name)
-// We only show machines where status is 'AVAILABLE'.
 $sql = "SELECT m.machine_id, m.model_name, m.daily_rate, c.category_name, o.company_name
         FROM machinery m 
         JOIN machine_categories c ON m.category_id = c.category_id
@@ -32,15 +22,15 @@ $result = $conn->query($sql);
     <title>Available Machinery - Torque4Hire</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* DASHBOARD SPECIFIC CSS */
-        /* Override the "centered" body from style.css to allow scrolling */
+       
+       
         body {
             display: block; 
             height: auto;
             padding: 20px;
         }
 
-        /* Navbar Styling */
+       
         .navbar {
             display: flex;
             justify-content: space-between;
@@ -52,14 +42,14 @@ $result = $conn->query($sql);
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        /* Grid Layout for Machine Cards */
+       
         .machine-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 20px;
         }
 
-        /* Individual Machine Card */
+       
         .machine-card {
             background: white;
             padding: 20px;
@@ -68,7 +58,7 @@ $result = $conn->query($sql);
             transition: transform 0.2s;
         }
         .machine-card:hover {
-            transform: translateY(-5px); /* Lift effect on hover */
+            transform: translateY(-5px);
         }
 
         .category-tag {
@@ -82,7 +72,7 @@ $result = $conn->query($sql);
 
         .price {
             font-size: 18px;
-            color: #28a745; /* Green for money */
+            color: #28a745;
             font-weight: bold;
             margin: 10px 0;
         }
@@ -95,7 +85,7 @@ $result = $conn->query($sql);
             width: 100%;
             border-radius: 4px;
             cursor: pointer;
-            text-decoration: none; /* For the link look */
+            text-decoration: none;
             display: block;
             text-align: center;
         }
@@ -109,10 +99,13 @@ $result = $conn->query($sql);
     <div>
         <span>Welcome, <b><?php echo htmlspecialchars($_SESSION['user_name']); ?></b></span>
         
+        <a href="view_trainers.php" style="margin-left: 15px; text-decoration: underline; color: #0056b3;">Find a Trainer</a>
+
         <a href="my_rentals.php" style="margin-left: 15px; text-decoration: underline;">My Rentals</a>
         
         <a href="logout.php" style="margin-left: 15px; color: red;">Logout</a>
     </div>
+</div>
 </div>
 
     <h3>Available Machines</h3>
@@ -120,10 +113,10 @@ $result = $conn->query($sql);
     <div class="machine-grid">
         
         <?php 
-        // 5. CHECK IF MACHINES EXIST
+        
         if ($result->num_rows > 0) {
-            // 6. LOOP THROUGH RESULTS
-            // $row becomes an array of data for one machine each time the loop runs
+            
+            
             while($row = $result->fetch_assoc()) { 
         ?>
             <div class="machine-card">
