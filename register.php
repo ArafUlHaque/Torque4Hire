@@ -43,9 +43,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 } elseif ($role == 'RENTER') {
                     $license = $_POST['license'];
+                    // Only validate if NOT empty
+                    if (!empty($license)) {
+                        if (!preg_match("/^HM-\d{6}$/", $license)) {
+                            throw new Exception("Invalid License Format! Use HM- followed by 6 digits.");
+                        }
+                    } else {
+                        $license = null; // Mark as unqualified
+                    }
                     $stmt_renter = $conn->prepare("INSERT INTO renters (renter_email, license_no) VALUES (?, ?)");
                     $stmt_renter->bind_param("ss", $email, $license);
-                    $stmt_renter->execute();
+                    $stmt_renter->execute();            
                 
                 } elseif ($role == 'TRAINER') {
                     // NEW: Trainer Logic
@@ -110,8 +118,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
 
         <div id="renterField">
-            <label>Operating License No:</label>
-            <input type="text" name="license" placeholder="License #12345">
+            <label>Operating License No (Optional):</label>
+            <input type="text" name="license" placeholder="Format: HM-123456" pattern="HM-\d{6}|" title="HM- followed by 6 digits or leave blank">
         </div>
 
         <div id="trainerField" class="hidden">

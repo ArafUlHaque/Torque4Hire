@@ -2,6 +2,14 @@
 session_start();
 include 'db_connect.php';
 
+$u_email = $_SESSION['user_email'];
+$check_q = $conn->query("SELECT license_no FROM renters WHERE renter_email = '$u_email'");
+$r_info = $check_q->fetch_assoc();
+if (!empty($r_info['license_no'])) {
+    header("Location: view_machinery.php?msg=Already Qualified");
+    exit();
+}
+
 // 1. SECURITY: Renters Only
 if (!isset($_SESSION['user_email']) || $_SESSION['role'] != 'RENTER') {
     header("Location: login.php");
@@ -22,6 +30,13 @@ $result = $conn->query($sql);
     <title>Find a Trainer - Torque4Hire</title>
     <link rel="stylesheet" href="style.css">
     <style>
+
+        body { 
+            display: block; 
+            height: auto; 
+            overflow-y: auto; 
+            padding: 40px 20px; 
+        }
         .trainer-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -84,7 +99,7 @@ $result = $conn->query($sql);
                 <p style="font-size:14px;">📧 <?php echo $row['trainer_email']; ?></p>
                 
                 <?php if ($status == 'AVAILABLE') { ?>
-                    <a href="book_training.php?trainer=<?php echo $row['trainer_email']; ?>" class="btn-book">Book Session</a>
+                    <a href="book_trainers.php?trainer=<?php echo $row['trainer_email']; ?>" class="btn-book">Book Session</a>
                 <?php } else { ?>
                     <a href="#" class="btn-book btn-disabled">Currently Unavailable</a>
                 <?php } ?>

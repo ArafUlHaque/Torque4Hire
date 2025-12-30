@@ -1,6 +1,10 @@
 <?php
 session_start();
 include 'db_connect.php';
+$u_email = $_SESSION['user_email'];
+$check_q = $conn->query("SELECT license_no FROM renters WHERE renter_email = '$u_email'");
+$r_info = $check_q->fetch_assoc();
+$is_qualified = !empty($r_info['license_no']);
 
 if (!isset($_SESSION['user_email']) || $_SESSION['role'] != 'RENTER') {
     header("Location: login.php"); 
@@ -129,7 +133,11 @@ $result = $conn->query($sql);
                 
                 <div class="price">$<?php echo $row['daily_rate']; ?> / day</div>
                 
-                <a href="rent_machine.php?id=<?php echo $row['machine_id']; ?>" class="rent-btn">Rent Now</a>
+                <?php if ($is_qualified): ?>
+                    <a href="rent_machine.php?id=<?php echo $row['machine_id']; ?>" class="rent-btn">Rent Now</a>
+                <?php else: ?>
+                    <a href="view_trainers.php" class="rent-btn" style="background-color: #ffc107; color: black; font-weight: bold;">Training Required</a>
+                <?php endif; ?>
             </div>
 
         <?php 
