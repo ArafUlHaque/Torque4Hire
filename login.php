@@ -8,6 +8,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST['email'];
     $password = $_POST['password'];
 
+    // 1. Verify User exists and Password is correct
     $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
@@ -17,22 +18,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $user = $result->fetch_assoc();
         
         if (password_verify($password, $user['password_hash'])) {
+            // Login Success - Set Base Session
             $_SESSION['user_email'] = $user['email'];
             $_SESSION['user_name'] = $user['name'];
             
-            $stmt_owner = $conn->prepare("SELECT * FROM owners WHERE owner_email = ?");
-            $stmt_owner->bind_param("s", $email);
-            $stmt_owner->execute();
-            $result_owner = $stmt_owner->get_result();
-
-            if ($result_owner->num_rows > 0) {
+            // 2. DETERMINE ROLE (Who are they?)
+            
+            // Check if Owner
+            $check_owner = $conn->query("SELECT * FROM owners WHERE owner_email = '$email'");
+            if ($check_owner->num_rows > 0) {
                 $_SESSION['role'] = 'OWNER';
                 header("Location: add_machinery.php");
-            } else {
-                $_SESSION['role'] = 'RENTER';
-                header("Location: view_machinery.php");
+                exit();
             }
+
+            // Check if Trainer (NEW)
+            $check_trainer = $conn->query("SELECT * FROM trainers WHERE trainer_email = '$email'");
+            if ($check_trainer->num_rows > 0) {
+                $_SESSION['role'] = 'TRAINER';
+                header("Location: trainer_dashboard.php");
+                exit();
+            }
+
+            // Default to Renter
+            $_SESSION['role'] = 'RENTER';
+            header("Location: view_machinery.php");
             exit();
+
         } else {
             $message = "Incorrect Password!";
         }
