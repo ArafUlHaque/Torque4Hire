@@ -22,13 +22,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['user_email'] = $user['email'];
             $_SESSION['user_name'] = $user['name'];
             
-            // 2. DETERMINE ROLE (Who are they?)
+            // 2. DETERMINE ROLE
             
             // Check if Owner
             $check_owner = $conn->query("SELECT * FROM owners WHERE owner_email = '$email'");
             if ($check_owner->num_rows > 0) {
                 $_SESSION['role'] = 'OWNER';
-                header("Location: add_machinery.php");
+                header("Location: owner_dashboard.php"); 
                 exit();
             }
 
@@ -42,7 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             // Default to Renter
             $_SESSION['role'] = 'RENTER';
-            header("Location: view_machinery.php");
+            header("Location: renter_dashboard.php"); // <--- CHANGED FROM view_machinery.php
             exit();
 
         } else {
