@@ -2,7 +2,7 @@
 session_start();
 include 'db_connect.php';
 
-// 1. SECURITY CHECK (Trainers Only)
+// 1. SECURITY: Trainers Only
 if (!isset($_SESSION['user_email']) || $_SESSION['role'] != 'TRAINER') {
     die("ACCESS DENIED. TRAINERS ONLY.");
 }
@@ -10,13 +10,13 @@ if (!isset($_SESSION['user_email']) || $_SESSION['role'] != 'TRAINER') {
 $email = $_SESSION['user_email'];
 $message = "";
 
-// 2. HANDLE STATUS UPDATE
+// 2. HANDLE STATUS UPDATE (Restoring the lost trainer feature)
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_status'])) {
     $new_status = $_POST['status'];
     $stmt = $conn->prepare("UPDATE trainers SET availability = ? WHERE trainer_email = ?");
     $stmt->bind_param("ss", $new_status, $email);
     if ($stmt->execute()) {
-        $message = "Status updated to " . $new_status;
+        $message = "Your status has been updated to $new_status.";
     }
 }
 
@@ -24,12 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_status'])) {
 $trainer = $conn->query("SELECT * FROM trainers WHERE trainer_email = '$email'")->fetch_assoc();
 
 // 4. GET UPCOMING SESSIONS
-// Join 'training_sessions' with 'users' to get the Renter's Name
-$sql = "SELECT s.*, u.name as renter_name, u.phone 
-        FROM training_sessions s
-        JOIN users u ON s.renter_email = u.email
-        WHERE s.trainer_email = ? 
-        ORDER BY s.session_start ASC";
+// We use a JOIN to show the Renter's Name instead of just their email
+$sql = "SELECT b.*, u.name as renter_name, u.phone 
+        FROM bookings b
+        JOIN users u ON b.renter_email = u.email
+        WHERE b.trainer_email = ? 
+        ORDER BY b.start_time ASC";
 $stmt_sess = $conn->prepare($sql);
 $stmt_sess->bind_param("s", $email);
 $stmt_sess->execute();
@@ -42,17 +42,17 @@ $sessions = $stmt_sess->get_result();
     <title>Trainer Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body { display: block; padding: 20px; }
+        body { display: block; padding: 20px; background: #f4f4f9; }
         .dashboard-header {
             background: white; padding: 20px; border-radius: 8px;
             display: flex; justify-content: space-between; align-items: center;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px;
         }
         .status-box {
-            background: #e9ecef; padding: 15px; border-radius: 8px;
-            display: inline-block; min-width: 300px;
+            background: white; padding: 20px; border-radius: 8px;
+            display: inline-block; min-width: 350px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        table { width: 100%; background: white; border-collapse: collapse; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        table { width: 100%; background: white; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background: #007bff; color: white; }
     </style>
@@ -62,56 +62,48 @@ $sessions = $stmt_sess->get_result();
     <div class="dashboard-header">
         <div>
             <h2 style="margin:0;">Trainer Dashboard</h2>
-            <p style="margin:5px 0 0 0; color:#666;">Welcome, <b><?php echo $_SESSION['user_name']; ?></b></p>
-            <p style="margin:0; font-size:14px; color:#007bff;"><?php echo htmlspecialchars($trainer['expertise']); ?></p>
+            <p>Welcome, <b><?php echo $_SESSION['user_name']; ?></b> (<?php echo htmlspecialchars($trainer['expertise']); ?>)</p>
         </div>
         <a href="logout.php" style="color:red; font-weight:bold;">Logout</a>
     </div>
 
     <div class="status-box">
-        <form method="POST" style="padding:0; box-shadow:none; width:auto; background:transparent;">
-            <label><b>Current Availability:</b></label>
-            <div style="display:flex; gap:10px;">
-                <select name="status" style="margin:0;">
+        <form method="POST">
+            <label><b>Update My Availability:</b></label>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <select name="status">
                     <option value="AVAILABLE" <?php if($trainer['availability'] == 'AVAILABLE') echo 'selected'; ?>>🟢 Available</option>
-                    <option value="BOOKED" <?php if($trainer['availability'] == 'BOOKED') echo 'selected'; ?>>🔴 Booked / Busy</option>
-                    <option value="OFFLINE" <?php if($trainer['availability'] == 'OFFLINE') echo 'selected'; ?>>⚪ Offline (On Leave)</option>
+                    <option value="BOOKED" <?php if($trainer['availability'] == 'BOOKED') echo 'selected'; ?>>🔴 Busy</option>
+                    <option value="OFFLINE" <?php if($trainer['availability'] == 'OFFLINE') echo 'selected'; ?>>⚪ Offline</option>
                 </select>
-                <button type="submit" name="update_status" style="margin:0; width:100px;">Update</button>
+                <button type="submit" name="update_status">Update Status</button>
             </div>
-            <?php if($message) echo "<p style='color:green; margin-top:5px;'>$message</p>"; ?>
+            <?php if($message) echo "<p style='color:green; font-weight:bold;'>$message</p>"; ?>
         </form>
     </div>
 
-    <h3>📅 Upcoming Training Sessions</h3>
-    
-    <?php if ($sessions->num_rows > 0) { ?>
-        <table>
-            <thead>
-                <tr>
-                    <th>Date & Time</th>
-                    <th>Student (Renter)</th>
-                    <th>Contact</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php while($row = $sessions->fetch_assoc()) { ?>
-                <tr>
-                    <td>
-                        <?php echo date('M d, Y', strtotime($row['session_start'])); ?><br>
-                        <small><?php echo date('h:i A', strtotime($row['session_start'])); ?> - <?php echo date('h:i A', strtotime($row['session_end'])); ?></small>
-                    </td>
-                    <td><b><?php echo htmlspecialchars($row['renter_name']); ?></b></td>
-                    <td><?php echo $row['phone'] ? $row['phone'] : $row['renter_email']; ?></td>
-                    <td><span style="background:#d4edda; color:#155724; padding:2px 6px; border-radius:4px; font-size:12px;">CONFIRMED</span></td>
-                </tr>
-                <?php } ?>
-            </tbody>
-        </table>
-    <?php } else { ?>
-        <p style="background:white; padding:20px; border-radius:8px;">No upcoming sessions found.</p>
-    <?php } ?>
+    <h3>📅 My Training Schedule</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Time Slot</th>
+                <th>Student Name</th>
+                <th>Contact info</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php while($row = $sessions->fetch_assoc()): ?>
+            <tr>
+                <td>
+                    <b><?php echo date('M d', strtotime($row['start_time'])); ?></b><br>
+                    <?php echo date('h:i A', strtotime($row['start_time'])); ?> - <?php echo date('h:i A', strtotime($row['end_time'])); ?>
+                </td>
+                <td><?php echo htmlspecialchars($row['renter_name']); ?></td>
+                <td><?php echo $row['phone'] ? $row['phone'] : $row['renter_email']; ?></td>
+            </tr>
+            <?php endwhile; ?>
+        </tbody>
+    </table>
 
 </body>
 </html>

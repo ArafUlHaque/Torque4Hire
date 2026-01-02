@@ -1,53 +1,47 @@
 <?php
-// 1. SILENT SESSION START
-// Only start a session if one isn't already active. This fixes the "Notice" error.
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
+session_start();
 include 'db_connect.php';
 
-// 2. SECURITY CHECK
 if (!isset($_SESSION['user_email']) || $_SESSION['role'] != 'RENTER') {
-    die("Access Denied.");
+    header("Location: login.php");
+    exit();
 }
 
-$message = "";
-$rental_id = isset($_GET['rental_id']) ? $_GET['rental_id'] : 0;
-$amount = isset($_GET['amount']) ? $_GET['amount'] : 0;
+if (!isset($_GET['rental_id'])) {
+    die("Error: No rental ID provided.");
+}
 
-// 3. HANDLE PAYMENT
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $r_id = $_POST['rental_id'];
-    $amt = $_POST['amount'];
-    $method = "Credit Card"; 
+$rental_id = $_GET['rental_id'];
+$stmt = $conn->prepare("SELECT total_cost, rental_status FROM rentals WHERE rental_id = ? AND renter_email = ?");
+$stmt->bind_param("is", $rental_id, $_SESSION['user_email']);
+$stmt->execute();
+$result = $stmt->get_result();
+$rental = $result->fetch_assoc();
 
-    // Generate Payment ID
-    $id_query = $conn->query("SELECT MAX(payment_id) as max_id FROM payments WHERE rental_id = $r_id");
-    $row = $id_query->fetch_assoc();
-    $next_id = $row['max_id'] + 1;
+if (!$rental) {
+    die("Error: Invalid rental record.");
+}
 
+$real_amount = $rental['total_cost']; 
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['process_payment'])) {
+    
+    
     $conn->begin_transaction();
     try {
-        // A. Insert Payment Record
-        $stmt = $conn->prepare("INSERT INTO payments (rental_id, payment_id, amount, method, status) VALUES (?, ?, ?, ?, 'COMPLETED')");
-        $stmt->bind_param("iids", $r_id, $next_id, $amt, $method);
-        $stmt->execute();
-
-        // B. Update Rental Status
-        $stmt2 = $conn->prepare("UPDATE rentals SET rental_status = 'CONFIRMED' WHERE rental_id = ?");
-        $stmt2->bind_param("i", $r_id);
-        $stmt2->execute();
+        $update_stmt = $conn->prepare("UPDATE rentals SET rental_status = 'CONFIRMED' WHERE rental_id = ?");
+        $update_stmt->bind_param("i", $rental_id);
+        $update_stmt->execute();
 
         $conn->commit();
-        
-        // Success Redirect
-        header("Location: renter_dashboard.php?view=rentals&msg=Payment Successful! Machine Confirmed.");
+        echo "<script>
+            alert('Payment of $$real_amount Successful! Your rental is now active.');
+            window.location.href='renter_dashboard.php?view=rentals';
+        </script>";
         exit();
-
     } catch (Exception $e) {
         $conn->rollback();
-        $message = "Payment Failed: " . $e->getMessage();
+        $message = "Payment Error: " . $e->getMessage();
     }
 }
 ?>
@@ -55,123 +49,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Secure Checkout - Torque4Hire</title>
+    <title>Secure Payment - Torque4Hire</title>
+    <link rel="stylesheet" href="style.css">
     <style>
-        body { 
-            background-color: #f4f7f6; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0;
-        }
-        
-        .payment-card { 
-            background: white; 
-            padding: 40px; 
-            border-radius: 12px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-            width: 380px; 
-            text-align: center;
-        }
-
-        h2 { color: #333; margin-bottom: 5px; }
-        
-        .amount-display { 
-            font-size: 36px; 
-            color: #28a745; 
-            font-weight: bold; 
-            margin: 15px 0 25px 0; 
-        }
-
-        /* Form Layout */
-        label {
-            display: block;
-            text-align: left;
-            margin-bottom: 5px;
-            font-size: 14px;
-            color: #666;
-            font-weight: 500;
-        }
-
-        input { 
-            width: 100%; 
-            padding: 12px; 
-            border: 1px solid #ddd; 
-            border-radius: 6px; 
-            font-size: 16px; 
-            margin-bottom: 15px;
-            box-sizing: border-box; /* Fixes width issues */
-            transition: border 0.2s;
-        }
-
-        input:focus {
-            border-color: #28a745;
-            outline: none;
-        }
-
-        .row {
-            display: flex;
-            gap: 15px;
-        }
-
-        button { 
-            width: 100%; 
-            background: #28a745; 
-            color: white; 
-            padding: 14px; 
-            border: none; 
-            border-radius: 6px; 
-            font-size: 16px; 
-            font-weight: bold;
-            cursor: pointer; 
-            margin-top: 10px;
-            box-shadow: 0 4px 6px rgba(40, 167, 69, 0.2);
-        }
-        
-        button:hover { background: #218838; }
-
-        .cancel-link {
-            display: block; 
-            margin-top: 20px; 
-            color: #999; 
-            text-decoration: none;
-            font-size: 14px;
-        }
-        .cancel-link:hover { color: #666; }
+        body { display: block; background: #121212; color: white; padding: 50px; font-family: sans-serif; }
+        .payment-card { max-width: 400px; margin: 0 auto; background: #1f1f1f; padding: 30px; border-radius: 8px; border: 1px solid #333; }
+        .price-display { font-size: 24px; color: #28a745; margin: 20px 0; text-align: center; font-weight: bold; }
+        input { width: 100%; padding: 10px; margin: 10px 0; background: #2d2d2d; border: 1px solid #444; color: white; box-sizing: border-box; }
+        .btn-pay { width: 100%; background: #28a745; color: white; padding: 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div class="payment-card">
-        <h2>Secure Checkout</h2>
-        <p style="color:#888; margin:0;">Rental ID: #<?php echo $rental_id; ?></p>
+        <h2 style="text-align: center;">Secure Checkout</h2>
+        <p style="text-align: center; color: #888;">Rental Reference: #<?php echo $rental_id; ?></p>
         
-        <div class="amount-display">$<?php echo number_format($amount, 2); ?></div>
-        
-        <?php if($message) echo "<p style='color:red; background:#ffecec; padding:10px; border-radius:4px;'>$message</p>"; ?>
+        <div class="price-display">
+            Amount Due: $<?php echo number_format($real_amount, 2); ?>
+        </div>
 
-        <form method="POST" autocomplete="off">
-            <input type="hidden" name="rental_id" value="<?php echo $rental_id; ?>">
-            <input type="hidden" name="amount" value="<?php echo $amount; ?>">
-
+        <form method="POST">
+            <label>Cardholder Name</label>
+            <input type="text" placeholder="John Doe" required>
+            
             <label>Card Number</label>
-            <input type="text" placeholder="0000 0000 0000 0000" maxlength="19" required>
-
-            <div class="row">
-                <div style="flex: 1;">
-                    <label>Expiry Date</label>
-                    <input type="text" placeholder="MM/YY" maxlength="5" required>
-                </div>
-                <div style="flex: 1;">
-                    <label>CVV</label>
-                    <input type="password" placeholder="123" maxlength="3" required>
-                </div>
+            <input type="text" placeholder="1234 5678 9101 1121" maxlength="16" required>
+            
+            <div style="display:flex; gap:10px;">
+                <input type="text" placeholder="MM/YY" maxlength="5" required>
+                <input type="text" placeholder="CVV" maxlength="3" required>
             </div>
 
-            <button type="submit">Pay Now</button>
-            <a href="renter_dashboard.php?view=rentals" class="cancel-link">Cancel Payment</a>
+            <button type="submit" name="process_payment" class="btn-pay">Pay $<?php echo number_format($real_amount, 2); ?></button>
+            <a href="renter_dashboard.php?view=rentals" style="display:block; text-align:center; color:#888; margin-top:15px; text-decoration:none;">Cancel and Go Back</a>
         </form>
     </div>
 

@@ -44,6 +44,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_machine'])) {
     }
 }
 
+if (isset($_POST['perform_service'])) {
+    $machine_id = $_POST['machine_id'];
+    $task_days = $_POST['task_duration']; // Standard days for the chosen task
+
+    $return_date = date('Y-m-d', strtotime("+$task_days days"));
+
+    $stmt = $conn->prepare("UPDATE machinery SET status = 'MAINTENANCE', expected_return_date = ?, rental_count = 0 WHERE machine_id = ?");
+    $stmt->bind_param("si", $return_date, $machine_id);
+    
+    if ($stmt->execute()) {
+        echo "<script>alert('Machine is now in maintenance. It will reappear for renters on $return_date'); window.location.href='owner_dashboard.php';</script>";
+    }
+}
+
+
+
 // 3. FETCH DATA
 // A. Get Categories for the dropdown
 $categories = $conn->query("SELECT * FROM machine_categories");
