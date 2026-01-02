@@ -47,20 +47,54 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_rent'])) {
     }
 }
 
-// B. Handle Return Machine
+// B. Handle Return Machine (WITH PENALTY CHECK)
 if (isset($_GET['action']) && $_GET['action'] == 'return' && isset($_GET['rental_id'])) {
     $rental_id = $_GET['rental_id'];
     $machine_id = $_GET['machine_id'];
 
     $conn->begin_transaction();
     try {
+        // 1. GET RENTAL DETAILS to check dates
+        $q = $conn->query("SELECT r.end_date, m.daily_rate 
+                           FROM rentals r 
+                           JOIN machinery m ON r.machine_id = m.machine_id 
+                           WHERE r.rental_id = $rental_id");
+        $rental = $q->fetch_assoc();
+        
+        $end_date = new DateTime($rental['end_date']);
+        $today = new DateTime(); // Current date/time
+        
+        // Reset time to midnight to compare just the dates
+        $end_date->setTime(0, 0, 0);
+        $today->setTime(0, 0, 0);
+        
+        $penalty_msg = "";
+
+        // 2. CHECK IF LATE
+        if ($today > $end_date) {
+            $interval = $end_date->diff($today);
+            $late_days = $interval->days;
+            $penalty_amount = $late_days * $rental['daily_rate'];
+            
+            // Insert Penalty
+            $reason = "Returned " . $late_days . " days late";
+            $p_stmt = $conn->prepare("INSERT INTO penalties (rental_id, penalty_amount, reason, penalty_status) VALUES (?, ?, ?, 'PENDING')");
+            $p_stmt->bind_param("ids", $rental_id, $penalty_amount, $reason);
+            $p_stmt->execute();
+            
+            $penalty_msg = " Note: Late fee of $$penalty_amount applied ($late_days days overdue).";
+        }
+
+        // 3. COMPLETE RETURN
         $conn->query("UPDATE rentals SET rental_status = 'COMPLETED' WHERE rental_id = $rental_id");
         $conn->query("UPDATE machinery SET status = 'AVAILABLE' WHERE machine_id = $machine_id");
+        
         $conn->commit();
-        $message = "Machine Returned Successfully!";
+        $message = "Machine Returned Successfully!" . $penalty_msg;
+        
     } catch (Exception $e) {
         $conn->rollback();
-        $message = "Error returning machine.";
+        $message = "Error: " . $e->getMessage();
     }
 }
 
@@ -138,7 +172,7 @@ $is_qualified = !empty($r_info['license_no']);
         <h2 style="margin:0;">Torque4Hire</h2>
         <div class="nav-tabs">
             <a href="?view=machines" class="<?php echo $view=='machines'?'active':''; ?>">🚜 Browse Machines</a>
-            <a href="?view=rentals" class="<?php echo $view=='rentals'?'active':''; ?>">📜 My Rentals</a>
+            <a href="?view=rentals" class="<?php echo $view=='rentals'?'active':''; ?>">🧾 My Rentals</a>
             <a href="?view=trainers" class="<?php echo $view=='trainers'?'active':''; ?>">👨‍🏫 Find Trainers</a>
             <a href="logout.php" style="color:#ff6b6b;">Logout</a>
         </div>
@@ -152,11 +186,36 @@ $is_qualified = !empty($r_info['license_no']);
             </div>
         <?php endif; ?>
 
-
         <?php if($view == 'machines') { 
-            $machines = $conn->query("SELECT m.*, c.category_name, o.company_name FROM machinery m JOIN machine_categories c ON m.category_id = c.category_id JOIN owners o ON m.owner_email = o.owner_email WHERE m.status = 'AVAILABLE'");
+            
+            // 1. CHECK IF SEARCH WAS TYPED
+            $search = isset($_GET['search']) ? $_GET['search'] : '';
+            $sql = "SELECT m.*, c.category_name, o.company_name 
+                    FROM machinery m 
+                    JOIN machine_categories c ON m.category_id = c.category_id 
+                    JOIN owners o ON m.owner_email = o.owner_email 
+                    WHERE m.status = 'AVAILABLE'";
+
+            // If user typed something, add a filter
+            if ($search) {
+                $sql .= " AND (m.model_name LIKE '%$search%' OR c.category_name LIKE '%$search%')";
+            }
+            
+            $machines = $conn->query($sql);
         ?>
-            <h3>Available Machinery</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>Available Machinery</h3>
+                
+                <form method="GET" style="display:flex; gap:5px; padding:0; box-shadow:none; background:transparent; width:auto;">
+                    <input type="hidden" name="view" value="machines">
+                    <input type="text" name="search" placeholder="Search machines..." value="<?php echo htmlspecialchars($search); ?>" style="padding:8px; width:200px;">
+                    <button type="submit" style="margin:0; padding:8px 15px;">🔍</button>
+                    <?php if($search): ?>
+                        <a href="?view=machines" style="padding:8px; color:red; text-decoration:none;">✖</a>
+                    <?php endif; ?>
+                </form>
+            </div>
+
             <div class="grid-box">
                 <?php while($row = $machines->fetch_assoc()) { ?>
                     <div class="card">
