@@ -215,19 +215,31 @@ $total_income = $earnings['total'] ? $earnings['total'] : 0.00;
                             <td><?php echo htmlspecialchars($row['category_name']); ?></td>
                             <td>$<?php echo $row['daily_rate']; ?></td>
                             <td>
-                                <?php if($row['status'] == 'AVAILABLE') { ?>
-                                    <span class="status-avail">Available</span>
-                                <?php } else { ?>
-                                    <span class="status-rented">Rented</span>
-                                <?php } ?>
+                                <?php 
+                                $s = $row['status'];
+                                if ($s == 'AVAILABLE') echo "<span style='color:green; font-weight:bold;'>Available</span>";
+                                elseif ($s == 'RENTED') echo "<span style='color:orange; font-weight:bold;'>Rented</span>";
+                                elseif ($s == 'MAINTENANCE') echo "<span style='color:red; font-weight:bold; background:#ffecec; padding:2px 5px; border-radius:4px;'>🔧 In Repair</span>";
+                                ?>
                             </td>
                             <td>
-                                <?php if($row['status'] == 'AVAILABLE') { ?>
-                                    <a href="owner_dashboard.php?delete=<?php echo $row['machine_id']; ?>" 
-                                       onclick="return confirm('Permanently remove this machine?')"
-                                       style="color: #dc3545; font-size: 13px; font-weight: bold;">
-                                       Delete
+                                <?php if($s == 'AVAILABLE') { ?>
+                                    <a href="maintenance.php?id=<?php echo $row['machine_id']; ?>" 
+                                    style="color:#ffc107; font-weight:bold; margin-right:10px; text-decoration:none;">
+                                    Report Issue
                                     </a>
+                                    <a href="owner_dashboard.php?delete=<?php echo $row['machine_id']; ?>" 
+                                    onclick="return confirm('Permanently remove this machine?')"
+                                    style="color: #dc3545; font-size: 13px; font-weight: bold;">
+                                    Delete
+                                    </a>
+
+                                <?php } elseif($s == 'MAINTENANCE') { ?>
+                                    <a href="maintenance.php?action=finish&id=<?php echo $row['machine_id']; ?>" 
+                                    style="background:#28a745; color:white; padding:5px 10px; border-radius:4px; text-decoration:none; font-size:12px;">
+                                    ✅ Mark Fixed
+                                    </a>
+
                                 <?php } else { ?>
                                     <span style="color:#ccc; font-size:12px;">In Use</span>
                                 <?php } ?>

@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_email']) || $_SESSION['role'] != 'RENTER') {
 
 $renter_email = $_SESSION['user_email'];
 $message = "";
+if(isset($_GET['msg'])) $message = $_GET['msg']; // Catch msg from Payment Page
 
 // 2. LOGIC HANDLERS (POST Requests)
 
@@ -122,7 +123,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['book_trainer'])) {
 }
 
 // 3. DETERMINE CURRENT VIEW
-// Default view is 'machines'
 $view = isset($_GET['view']) ? $_GET['view'] : 'machines';
 
 // Check License Qualification
@@ -139,28 +139,12 @@ $is_qualified = !empty($r_info['license_no']);
     <link rel="stylesheet" href="style.css">
     <style>
         body { display: block; padding: 0; background: #f8f9fa; }
-        
-        /* Navbar */
-        .navbar {
-            background: #343a40; color: white; padding: 15px 30px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .nav-tabs a {
-            color: #adb5bd; text-decoration: none; margin-left: 20px;
-            padding-bottom: 5px; font-weight: 500;
-        }
-        .nav-tabs a:hover, .nav-tabs a.active {
-            color: white; border-bottom: 2px solid #007bff;
-        }
-
-        /* Container */
+        .navbar { background: #343a40; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-tabs a { color: #adb5bd; text-decoration: none; margin-left: 20px; padding-bottom: 5px; font-weight: 500; }
+        .nav-tabs a:hover, .nav-tabs a.active { color: white; border-bottom: 2px solid #007bff; }
         .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
-
-        /* Grid Layouts */
         .grid-box { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        
-        /* Tables */
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
         th, td { padding: 15px; border-bottom: 1px solid #eee; text-align: left; }
         th { background: #e9ecef; }
@@ -179,7 +163,6 @@ $is_qualified = !empty($r_info['license_no']);
     </div>
 
     <div class="container">
-        
         <?php if($message): ?>
             <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: center;">
                 <?php echo $message; ?>
@@ -187,8 +170,7 @@ $is_qualified = !empty($r_info['license_no']);
         <?php endif; ?>
 
         <?php if($view == 'machines') { 
-            
-            // 1. CHECK IF SEARCH WAS TYPED
+            // YOUR SEARCH LOGIC
             $search = isset($_GET['search']) ? $_GET['search'] : '';
             $sql = "SELECT m.*, c.category_name, o.company_name 
                     FROM machinery m 
@@ -196,16 +178,13 @@ $is_qualified = !empty($r_info['license_no']);
                     JOIN owners o ON m.owner_email = o.owner_email 
                     WHERE m.status = 'AVAILABLE'";
 
-            // If user typed something, add a filter
             if ($search) {
                 $sql .= " AND (m.model_name LIKE '%$search%' OR c.category_name LIKE '%$search%')";
             }
-            
             $machines = $conn->query($sql);
         ?>
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h3>Available Machinery</h3>
-                
                 <form method="GET" style="display:flex; gap:5px; padding:0; box-shadow:none; background:transparent; width:auto;">
                     <input type="hidden" name="view" value="machines">
                     <input type="text" name="search" placeholder="Search machines..." value="<?php echo htmlspecialchars($search); ?>" style="padding:8px; width:200px;">
@@ -225,21 +204,14 @@ $is_qualified = !empty($r_info['license_no']);
                         <h4><?php echo htmlspecialchars($row['model_name']); ?></h4>
                         <p style="color:#666; font-size:14px;">Owner: <?php echo htmlspecialchars($row['company_name']); ?></p>
                         <h3 style="color:#28a745; margin:10px 0;">$<?php echo $row['daily_rate']; ?> <small>/day</small></h3>
-                        
                         <?php if($is_qualified): ?>
-                            <a href="?view=rent_form&id=<?php echo $row['machine_id']; ?>" 
-                               style="display:block; background:#007bff; color:white; text-align:center; padding:10px; border-radius:4px; text-decoration:none;">
-                               Rent Now
-                            </a>
+                            <a href="?view=rent_form&id=<?php echo $row['machine_id']; ?>" style="display:block; background:#007bff; color:white; text-align:center; padding:10px; border-radius:4px; text-decoration:none;">Rent Now</a>
                         <?php else: ?>
-                            <a href="?view=trainers" style="display:block; background:#ffc107; color:black; text-align:center; padding:10px; border-radius:4px; text-decoration:none; font-weight:bold;">
-                                Training Required
-                            </a>
+                            <a href="?view=trainers" style="display:block; background:#ffc107; color:black; text-align:center; padding:10px; border-radius:4px; text-decoration:none; font-weight:bold;">Training Required</a>
                         <?php endif; ?>
                     </div>
                 <?php } ?>
             </div>
-
 
         <?php } elseif($view == 'rent_form' && isset($_GET['id'])) { 
             $m_id = $_GET['id'];
@@ -250,18 +222,14 @@ $is_qualified = !empty($r_info['license_no']);
                 <form method="POST" action="?view=rentals">
                     <input type="hidden" name="machine_id" value="<?php echo $m_id; ?>">
                     <input type="hidden" name="daily_rate" value="<?php echo $machine['daily_rate']; ?>">
-                    
                     <label>Start Date:</label>
                     <input type="date" name="start_date" required min="<?php echo date('Y-m-d'); ?>">
-                    
                     <label>End Date:</label>
                     <input type="date" name="end_date" required min="<?php echo date('Y-m-d'); ?>">
-                    
                     <button type="submit" name="confirm_rent" style="width:100%; margin-top:20px;">Confirm Request</button>
                     <a href="?view=machines" style="display:block; text-align:center; margin-top:10px;">Cancel</a>
                 </form>
             </div>
-
 
         <?php } elseif($view == 'rentals') { 
             $rentals = $conn->query("SELECT r.*, m.model_name, m.daily_rate, o.company_name FROM rentals r JOIN machinery m ON r.machine_id = m.machine_id JOIN owners o ON m.owner_email = o.owner_email WHERE r.renter_email = '$renter_email' ORDER BY r.rental_id DESC");
@@ -278,7 +246,9 @@ $is_qualified = !empty($r_info['license_no']);
                     </tr>
                 </thead>
                 <tbody>
-                    <?php while($row = $rentals->fetch_assoc()) { ?>
+                    <?php while($row = $rentals->fetch_assoc()) { 
+                        $s = $row['rental_status']; // Capture status
+                    ?>
                     <tr>
                         <td>
                             <b><?php echo htmlspecialchars($row['model_name']); ?></b><br>
@@ -287,18 +257,27 @@ $is_qualified = !empty($r_info['license_no']);
                         <td><?php echo $row['start_date']; ?> to <?php echo $row['end_date']; ?></td>
                         <td>$<?php echo $row['total_cost']; ?></td>
                         <td>
-                            <?php if($row['rental_status']=='COMPLETED') echo '<span style="color:green; font-weight:bold;">Completed</span>'; 
-                                  else echo '<span style="color:orange; font-weight:bold;">Active</span>'; ?>
+                            <?php 
+                            if($s =='COMPLETED') echo '<span style="color:green; font-weight:bold;">Completed</span>'; 
+                            elseif($s =='CONFIRMED') echo '<span style="color:blue; font-weight:bold;">Active</span>';
+                            elseif($s =='PAYMENT_PENDING') echo '<span style="color:#e0a800; font-weight:bold;">Payment Due</span>';
+                            elseif($s =='REQUESTED') echo '<span style="color:gray; font-style:italic;">Waiting Approval</span>';
+                            ?>
                         </td>
                         <td>
-                            <?php if($row['rental_status'] != 'COMPLETED'): ?>
+                            <?php if($s == 'PAYMENT_PENDING'): ?>
+                                <a href="payment_gateway.php?rental_id=<?php echo $row['rental_id']; ?>&amount=<?php echo $row['total_cost']; ?>" 
+                                   style="background:#28a745; color:white; padding:5px 10px; border-radius:4px; text-decoration:none; font-weight:bold;">
+                                   Pay Now
+                                </a>
+                            <?php elseif($s == 'CONFIRMED'): ?>
                                 <a href="?view=rentals&action=return&rental_id=<?php echo $row['rental_id']; ?>&machine_id=<?php echo $row['machine_id']; ?>" 
                                    onclick="return confirm('Return this machine?')"
                                    style="background:#dc3545; color:white; padding:5px 10px; border-radius:4px; text-decoration:none; font-size:12px;">
                                    Return
                                 </a>
                             <?php else: ?>
-                                -
+                                <span style="color:#ccc;">-</span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -306,8 +285,8 @@ $is_qualified = !empty($r_info['license_no']);
                 </tbody>
             </table>
 
-
         <?php } elseif($view == 'trainers') { 
+            // TRAINER VIEW (KEPT AS IS)
             $trainers = $conn->query("SELECT t.*, u.name FROM trainers t JOIN users u ON t.trainer_email = u.email");
         ?>
             <h3>Expert Trainers</h3>
@@ -317,12 +296,8 @@ $is_qualified = !empty($r_info['license_no']);
                         <h4><?php echo htmlspecialchars($row['name']); ?></h4>
                         <p>Expertise: <b><?php echo htmlspecialchars($row['expertise']); ?></b></p>
                         <p>Status: <?php echo $row['availability']; ?></p>
-                        
                         <?php if($row['availability'] == 'AVAILABLE'): ?>
-                            <a href="?view=book_trainer_form&email=<?php echo $row['trainer_email']; ?>" 
-                               style="display:block; background:#17a2b8; color:white; text-align:center; padding:10px; border-radius:4px; text-decoration:none;">
-                               Book Session
-                            </a>
+                            <a href="?view=book_trainer_form&email=<?php echo $row['trainer_email']; ?>" style="display:block; background:#17a2b8; color:white; text-align:center; padding:10px; border-radius:4px; text-decoration:none;">Book Session</a>
                         <?php else: ?>
                             <button disabled style="width:100%; background:#ccc;">Unavailable</button>
                         <?php endif; ?>
@@ -330,18 +305,16 @@ $is_qualified = !empty($r_info['license_no']);
                 <?php } ?>
             </div>
 
-
         <?php } elseif($view == 'book_trainer_form' && isset($_GET['email'])) { 
+            // BOOK TRAINER FORM (KEPT AS IS)
             $t_email = $_GET['email'];
         ?>
             <div style="max-width:500px; margin:0 auto;" class="card">
                 <h3>Book Training Session</h3>
                 <form method="POST" action="?view=trainers">
                     <input type="hidden" name="trainer_email" value="<?php echo $t_email; ?>">
-                    
                     <label>Date:</label>
                     <input type="date" name="session_date" required min="<?php echo date('Y-m-d'); ?>">
-                    
                     <div style="display:flex; gap:10px;">
                         <div style="flex:1;">
                             <label>Start Time:</label>
@@ -352,7 +325,6 @@ $is_qualified = !empty($r_info['license_no']);
                             <input type="time" name="end_time" required>
                         </div>
                     </div>
-                    
                     <button type="submit" name="book_trainer" style="width:100%; margin-top:20px; background:#17a2b8;">Confirm Booking</button>
                     <a href="?view=trainers" style="display:block; text-align:center; margin-top:10px;">Cancel</a>
                 </form>
@@ -360,6 +332,5 @@ $is_qualified = !empty($r_info['license_no']);
         <?php } ?>
 
     </div>
-
 </body>
 </html>

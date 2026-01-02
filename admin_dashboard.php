@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
     if ($action == 'approve') {
-        $stmt = $conn->prepare("UPDATE rentals SET rental_status = 'CONFIRMED' WHERE rental_id = ?");
+        $stmt = $conn->prepare("UPDATE rentals SET rental_status = 'PAYMENT_PENDING' WHERE rental_id = ?");
         $stmt->bind_param("i", $rental_id);
         if($stmt->execute()) $message = "Rental #$rental_id Approved!";
     } 
