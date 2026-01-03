@@ -38,15 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     }
 }
 
-// --- DATA FETCHING ---
 
-// 1. STATS
+
+
 $renters_count = $conn->query("SELECT COUNT(*) as total FROM renters")->fetch_assoc()['total'];
 $owners_count = $conn->query("SELECT COUNT(*) as total FROM owners")->fetch_assoc()['total'];
 $machines_count = $conn->query("SELECT COUNT(*) as total FROM machinery")->fetch_assoc()['total'];
 $rentals_count = $conn->query("SELECT COUNT(*) as total FROM rentals")->fetch_assoc()['total'];
 
-// 2. RENTALS (Existing)
+
 $sql_rentals = "SELECT r.*, u.name as renter_name, m.model_name, o.company_name 
                 FROM rentals r
                 JOIN users u ON r.renter_email = u.email
@@ -55,21 +55,21 @@ $sql_rentals = "SELECT r.*, u.name as renter_name, m.model_name, o.company_name
                 ORDER BY r.rental_id DESC";
 $all_rentals = $conn->query($sql_rentals);
 
-// 3. OWNERS (Existing)
+
 $sql_owners = "SELECT o.*, u.name, u.phone, u.address, u.created_at 
                FROM owners o
                JOIN users u ON o.owner_email = u.email
                ORDER BY u.created_at DESC";
 $all_owners = $conn->query($sql_owners);
 
-// 4. NEW: RENTERS LIST
+
 $sql_renters = "SELECT r.*, u.name, u.phone, u.address, u.created_at
                 FROM renters r
                 JOIN users u ON r.renter_email = u.email
                 ORDER BY u.created_at DESC";
 $all_renters = $conn->query($sql_renters);
 
-// 5. NEW: MACHINES LIST
+
 $sql_machines = "SELECT m.*, c.category_name, o.company_name
                  FROM machinery m
                  JOIN machine_categories c ON m.category_id = c.category_id
@@ -84,14 +84,14 @@ $all_machines = $conn->query($sql_machines);
     <title>Admin Dashboard - Torque4Hire</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* ADMIN SPECIFIC OVERRIDES */
+       
         body { 
             display: block; 
             padding: 20px; 
-            /* Background Inherited (Dark Asphalt) */
+           
         }
         
-        /* Yellow Navbar */
+       
         .navbar {
             display: flex; justify-content: space-between; align-items: center;
             background: #FFD700; padding: 15px 30px; 
@@ -102,23 +102,23 @@ $all_machines = $conn->query($sql_machines);
             margin: 0; color: #1A1A1A; font-size: 24px; border: none; padding: 0;
         }
        
-        /* Stats Grid */
+       
         .stats-grid {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px; margin-bottom: 40px;
         }
         .stat-card {
             background: white; padding: 20px; text-align: center;
-            border-top: 5px solid #FFD700; /* Yellow Accent */
+            border-top: 5px solid #FFD700;
             box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
         .stat-number { font-size: 32px; font-weight: 900; color: #1A1A1A; margin: 5px 0; }
         .stat-label { color: #666; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
 
-        /* Tables & Sections */
+       
         .section-title { 
             margin-top: 50px; margin-bottom: 15px; 
-            color: #FFD700; /* Yellow Titles */
+            color: #FFD700;
             border-bottom: 2px solid #333; 
             padding-bottom: 10px; 
             text-transform: uppercase;
@@ -127,7 +127,7 @@ $all_machines = $conn->query($sql_machines);
         
         .card {
             background: white;
-            padding: 0; /* Let table fill the card */
+            padding: 0;
             border-top: 5px solid #1A1A1A;
             box-shadow: 0 5px 15px rgba(0,0,0,0.5);
             overflow-x: auto;
@@ -145,13 +145,13 @@ $all_machines = $conn->query($sql_machines);
         td { color: #1A1A1A; font-weight: 500; }
         tr:hover { background-color: #f9f9f9; }
 
-        /* Badges */
+       
         .badge { padding: 5px 10px; font-size: 11px; font-weight: 900; text-transform: uppercase; display: inline-block; }
         .badge-req { background: #1A1A1A; color: #FFD700; border: 1px solid #FFD700; }
         .badge-conf { background: #28a745; color: white; }
         .badge-rej { background: #d32f2f; color: white; }
 
-        /* Action Buttons */
+       
         .btn-action { border: none; padding: 8px 12px; cursor: pointer; color: #1A1A1A; font-weight: 900; text-transform: uppercase; font-size: 11px; margin-right: 5px; box-shadow: 2px 2px 0 rgba(0,0,0,0.2); }
         .btn-approve { background-color: #FFD700; }
         .btn-reject { background-color: #d32f2f; color: white; }

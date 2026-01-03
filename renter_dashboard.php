@@ -1,11 +1,11 @@
 <?php
-// 1. SESSION & DATABASE
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 include 'db_connect.php';
 
-// 2. SECURITY: Renters Only
+
 if (!isset($_SESSION['user_email']) || $_SESSION['role'] != 'RENTER') {
     header("Location: login.php");
     exit();
@@ -15,9 +15,9 @@ $renter_email = $_SESSION['user_email'];
 $message = "";
 if(isset($_GET['msg'])) $message = $_GET['msg']; 
 
-// 3. LOGIC HANDLERS (POST & GET Requests)
 
-// A. Handle Rental Submission
+
+
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_rent'])) {
     $machine_id = $_POST['machine_id'];
     $start_date = $_POST['start_date'];
@@ -50,7 +50,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_rent'])) {
     }
 }
 
-// B. Handle Return Machine
+
 if (isset($_GET['action']) && $_GET['action'] == 'return' && isset($_GET['rental_id'])) {
     $rental_id = $_GET['rental_id'];
     $machine_id = $_GET['machine_id'];
@@ -97,7 +97,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'return' && isset($_GET['rental
     }
 }
 
-// C. Handle Trainer Booking
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_trainer'])) {
     $trainer_email = $_POST['trainer_email'];
     $session_date = $_POST['session_date'];
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_trainer'])) {
     }
 }
 
-// D. HANDLE PROFILE UPDATE
+
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
     $name = $_POST['name'];
     $phone = $_POST['phone'];
@@ -149,7 +149,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
     $message = "Profile Updated Successfully!";
 }
 
-// 4. DATA FETCHING
+
 $view = isset($_GET['view']) ? $_GET['view'] : 'machines';
 $check_q = $conn->query("SELECT license_no FROM renters WHERE renter_email = '$renter_email'");
 $r_info = $check_q->fetch_assoc();
@@ -162,14 +162,14 @@ $is_qualified = !empty($r_info['license_no']);
     <title>Renter Dashboard - Torque4Hire</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* RENTER SPECIFIC OVERRIDES */
+       
         body { 
             display: block; 
             padding: 0; 
-            /* Background Inherited from style.css */
+           
         }
 
-        /* Yellow Navbar */
+       
         .navbar { 
             background: #FFD700; 
             padding: 15px 30px; 
@@ -179,11 +179,11 @@ $is_qualified = !empty($r_info['license_no']);
             border-bottom: 5px solid #b39700;
         }
 
-        /* Nav Tabs Layout Fix: Horizontal Flex */
+       
         .nav-tabs {
             display: flex;
             align-items: center;
-            gap: 20px; /* Spacing between links */
+            gap: 20px;
         }
 
         .nav-tabs a { 
@@ -192,7 +192,7 @@ $is_qualified = !empty($r_info['license_no']);
             font-weight: 800; 
             text-transform: uppercase;
             padding: 5px 0; 
-            /* Removed margin-left to use 'gap' instead */
+           
         }
 
         .nav-tabs a.active { 
@@ -211,7 +211,7 @@ $is_qualified = !empty($r_info['license_no']);
             gap: 20px; 
         }
 
-        /* White Cards for Content */
+       
         .card { 
             background: #ffffff; 
             padding: 20px; 
@@ -220,7 +220,7 @@ $is_qualified = !empty($r_info['license_no']);
             box-shadow: 0 5px 15px rgba(0,0,0,0.5); 
             color: #1A1A1A;
             
-            /* Flex layout to align button at bottom */
+           
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -237,7 +237,7 @@ $is_qualified = !empty($r_info['license_no']);
             font-weight: 500;
         }
 
-        /* Industrial Tables */
+       
         table { 
             width: 100%; 
             border-collapse: collapse; 
@@ -259,13 +259,13 @@ $is_qualified = !empty($r_info['license_no']);
             text-transform: uppercase;
         }
 
-        /* Buttons within Dashboard */
+       
         .btn { 
-            width: 100%; /* Ensure full width */
-            box-sizing: border-box; /* Prevent padding from breaking layout */
+            width: 100%;
+            box-sizing: border-box;
             padding: 15px; 
             text-decoration: none; 
-            display: block; /* Ensures block behavior */
+            display: block;
             font-weight: 900; 
             text-align: center; 
             border: none; 
@@ -273,13 +273,13 @@ $is_qualified = !empty($r_info['license_no']);
             text-transform: uppercase;
             box-shadow: 0 4px 0 rgba(0,0,0,0.2);
             transition: transform 0.1s;
-            margin-top: 20px; /* Safe distance from content */
+            margin-top: 20px;
         }
         
         .btn:active { transform: translateY(2px); box-shadow: none; }
 
-        .btn-blue { background: #FFD700; color: #1A1A1A; } /* Main Action = Yellow */
-        .btn-yellow { background: #1A1A1A; color: #FFD700; } /* Secondary = Dark */
+        .btn-blue { background: #FFD700; color: #1A1A1A; }
+        .btn-yellow { background: #1A1A1A; color: #FFD700; }
         .btn-red { background: #d32f2f; color: white; }
         .btn-green { background: #28a745; color: white; }
     </style>

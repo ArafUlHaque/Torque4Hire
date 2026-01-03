@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['process_payment'])) {
     <title>Secure Payment - Torque4Hire</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Specific Styles for Payment Display */
+       
         .price-box {
             background: #1A1A1A;
             color: #FFD700;

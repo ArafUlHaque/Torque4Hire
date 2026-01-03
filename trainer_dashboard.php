@@ -2,7 +2,7 @@
 session_start();
 include 'db_connect.php';
 
-// 1. SECURITY: Trainers Only
+
 if (!isset($_SESSION['user_email']) || $_SESSION['role'] != 'TRAINER') {
     die("ACCESS DENIED. TRAINERS ONLY.");
 }
@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_email']) || $_SESSION['role'] != 'TRAINER') {
 $email = $_SESSION['user_email'];
 $message = "";
 
-// 2. LOGIC: HANDLE STATUS UPDATE
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_status'])) {
     $new_status = $_POST['status'];
     $stmt = $conn->prepare("UPDATE trainers SET availability = ? WHERE trainer_email = ?");
@@ -20,24 +20,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_status'])) {
     }
 }
 
-// 3. LOGIC: HANDLE PROFILE UPDATE
+
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
     $name = $_POST['name'];
     $phone = $_POST['phone'];
     $expert = $_POST['expertise'];
     $pass = $_POST['password'];
 
-    // Update Users Table (Name, Phone, Password)
+    
     $stmt_u = $conn->prepare("UPDATE users SET name=?, phone=? WHERE email=?");
     $stmt_u->bind_param("sss", $name, $phone, $email);
     $stmt_u->execute();
 
-    // Update Trainers Table (Expertise)
+    
     $stmt_t = $conn->prepare("UPDATE trainers SET expertise=? WHERE trainer_email=?");
     $stmt_t->bind_param("ss", $expert, $email);
     $stmt_t->execute();
 
-    // Update Password if provided
+    
     if (!empty($pass)) {
         $hashed = password_hash($pass, PASSWORD_DEFAULT);
         $stmt_p = $conn->prepare("UPDATE users SET password_hash=? WHERE email=?");
@@ -48,7 +48,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
     $message = "PROFILE DATA UPDATED SUCCESSFULLY.";
 }
 
-// 4. GET TRAINER DETAILS & VIEW LOGIC
+
 $trainer = $conn->query("SELECT t.*, u.name, u.phone FROM trainers t JOIN users u ON t.trainer_email = u.email WHERE t.trainer_email = '$email'")->fetch_assoc();
 $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
 
@@ -60,14 +60,14 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
     <title>Trainer Dashboard - Torque4Hire</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* TRAINER DASHBOARD OVERRIDES */
+       
         body { 
             display: block; 
             padding: 0; 
-            /* Background Inherited (Dark Asphalt) */
+           
         }
         
-        /* Safety Yellow Navbar */
+       
         .dashboard-header {
             background: #FFD700; 
             padding: 15px 30px; 
@@ -106,7 +106,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
             padding: 0 20px;
         }
 
-        /* White Content Cards */
+       
         .card {
             background: white; 
             padding: 25px; 
@@ -124,7 +124,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
             padding-bottom: 10px;
         }
 
-        /* Status Box Specifics */
+       
         .status-form {
             display: flex;
             align-items: center;
@@ -150,7 +150,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
             padding: 12px 25px;
         }
 
-        /* Industrial Table */
+       
         table { 
             width: 100%; 
             background: white; 
@@ -173,7 +173,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
             font-size: 14px;
         }
 
-        /* Status Indicators */
+       
         .status-dot {
             height: 12px; width: 12px;
             display: inline-block;

@@ -2,14 +2,14 @@
 session_start();
 include 'db_connect.php';
 
-// 1. SECURITY: Owners Only
+
 if (!isset($_SESSION['user_email']) || $_SESSION['role'] != 'OWNER') {
     die("Access Denied.");
 }
 
 $message = "";
 
-// 2. HANDLE "START MAINTENANCE"
+
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['start_maintenance'])) {
     $m_id = $_POST['machine_id'];
     $start = $_POST['start_date'];
@@ -37,7 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['start_maintenance'])) 
     }
 }
 
-// 3. HANDLE "FINISH MAINTENANCE"
+
 if (isset($_GET['action']) && $_GET['action'] == 'finish' && isset($_GET['id'])) {
     $m_id = $_GET['id'];
     if($conn->query("UPDATE machinery SET status = 'AVAILABLE' WHERE machine_id = $m_id")) {
@@ -48,7 +48,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'finish' && isset($_GET['id']))
     }
 }
 
-// 4. FETCH MACHINE DETAILS
+
 $machine = null;
 if (isset($_GET['id'])) {
     $id = $_GET['id'];

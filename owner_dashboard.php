@@ -11,9 +11,9 @@ $email = $_SESSION['user_email'];
 $message = "";
 if(isset($_GET['msg'])) $message = $_GET['msg'];
 
-// --- LOGIC HANDLERS ---
 
-// 1. Delete Machine
+
+
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
     $conn->query("DELETE FROM machinery WHERE machine_id=$id AND owner_email='$email'");
@@ -21,7 +21,7 @@ if (isset($_GET['delete'])) {
     exit();
 }
 
-// 2. Add Machine
+
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_machine'])) {
     $model = $_POST['model_name'];
     $cat = $_POST['category_id'];
@@ -35,7 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_machine'])) {
     }
 }
 
-// 3. Update Profile (Including Company Name)
+
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
     $name = $_POST['name'];
     $phone = $_POST['phone'];
@@ -43,12 +43,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
     $company = $_POST['company_name'];
     $pass = $_POST['password'];
 
-    // Update Users Table
+    
     $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, address=? WHERE email=?");
     $stmt->bind_param("ssss", $name, $phone, $address, $email);
     $stmt->execute();
 
-    // Update Owners Table (Company Name)
+    
     $stmt2 = $conn->prepare("UPDATE owners SET company_name=? WHERE owner_email=?");
     $stmt2->bind_param("ss", $company, $email);
     $stmt2->execute();
@@ -60,7 +60,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
     $message = "Profile Updated!";
 }
 
-// View Logic
+
 $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
 ?>
 
@@ -70,11 +70,11 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
     <title>Owner Dashboard - Torque4Hire</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* DASHBOARD SPECIFIC OVERRIDES */
+       
         body { 
             display: block; 
             padding: 20px; 
-            /* Background is inherited from style.css (Dark Asphalt) */
+           
         }
 
         .dashboard-container { 
@@ -85,14 +85,14 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
             gap: 30px; 
         }
 
-        /* Industrial Navbar: Safety Yellow Strip */
+       
         .navbar { 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            background: #FFD700; /* Safety Yellow */
+            background: #FFD700;
             padding: 15px 30px; 
-            border-bottom: 5px solid #b39700; /* Darker Yellow Border */
+            border-bottom: 5px solid #b39700;
             margin-bottom: 30px; 
         }
 
@@ -117,11 +117,11 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
             text-decoration: underline;
         }
 
-        /* Content Cards: White Blocks */
+       
         .card { 
             background: white; 
             padding: 25px; 
-            border-top: 5px solid #1A1A1A; /* Dark Top Accent */
+            border-top: 5px solid #1A1A1A;
             box-shadow: 0 5px 15px rgba(0,0,0,0.5); 
         }
 
@@ -134,7 +134,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
             padding-bottom: 10px;
         }
 
-        /* Industrial Table */
+       
         table { 
             width: 100%; 
             border-collapse: collapse; 
@@ -149,7 +149,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
 
         th { 
             background: #1A1A1A; 
-            color: #FFD700; /* Yellow Text on Dark Header */
+            color: #FFD700;
             text-transform: uppercase;
             font-size: 14px;
         }
@@ -159,7 +159,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
             font-weight: 500;
         }
 
-        /* Links inside tables */
+       
         td a {
             display: inline;
             margin: 0 5px;

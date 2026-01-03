@@ -10,11 +10,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $confirm_password = $_POST['confirm_password'];
     $role = $_POST['role'];
     
-    // 1. CHECK PASSWORDS
+    
     if ($password !== $confirm_password) {
         $message = "Error: Passwords do not match!";
     } else {
-        // 2. CHECK IF EMAIL EXISTS
+        
         $check_stmt = $conn->prepare("SELECT email FROM users WHERE email = ?");
         $check_stmt->bind_param("s", $email);
         $check_stmt->execute();
@@ -25,16 +25,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } else {
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-            // 3. START TRANSACTION
+            
             $conn->begin_transaction();
 
             try {
-                // Insert into base USERS table
+                
                 $stmt_user = $conn->prepare("INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)");
                 $stmt_user->bind_param("sss", $email, $name, $hashed_password);
                 $stmt_user->execute();
 
-                // Insert into specific ROLE table
+                
                 if ($role == 'OWNER') {
                     $company = $_POST['company_name'];
                     $stmt_owner = $conn->prepare("INSERT INTO owners (owner_email, company_name) VALUES (?, ?)");
@@ -43,22 +43,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 } elseif ($role == 'RENTER') {
                     $license = $_POST['license'];
-                    // Only validate if NOT empty
+                    
                     if (!empty($license)) {
                         if (!preg_match("/^HM-\d{6}$/", $license)) {
                             throw new Exception("Invalid License Format! Use HM- followed by 6 digits.");
                         }
                     } else {
-                        $license = null; // Mark as unqualified
+                        $license = null; 
                     }
                     $stmt_renter = $conn->prepare("INSERT INTO renters (renter_email, license_no) VALUES (?, ?)");
                     $stmt_renter->bind_param("ss", $email, $license);
                     $stmt_renter->execute();            
                 
                 } elseif ($role == 'TRAINER') {
-                    // NEW: Trainer Logic
+                    
                     $expertise = $_POST['expertise'];
-                    // Default availability is 'AVAILABLE'
+                    
                     $stmt_trainer = $conn->prepare("INSERT INTO trainers (trainer_email, expertise, availability) VALUES (?, ?, 'AVAILABLE')");
                     $stmt_trainer->bind_param("ss", $email, $expertise);
                     $stmt_trainer->execute();
@@ -149,12 +149,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             var renterDiv = document.getElementById("renterField");
             var trainerDiv = document.getElementById("trainerField");
 
-            // Reset all to hidden first
+            
             ownerDiv.classList.add("hidden");
             renterDiv.classList.add("hidden");
             trainerDiv.classList.add("hidden");
 
-            // Show selected
+            
             if (role === "OWNER") {
                 ownerDiv.classList.remove("hidden"); 
             } else if (role === "TRAINER") {
@@ -164,7 +164,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
         
-        // Run once on load to set correct state
+        
         window.onload = toggleFields; 
     </script>
 </body>
