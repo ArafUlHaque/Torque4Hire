@@ -132,6 +132,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_trainer'])) {
     }
 }
 
+// D. HANDLE PROFILE UPDATE
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
+    $name = $_POST['name'];
+    $phone = $_POST['phone'];
+    $address = $_POST['address'];
+    $password = $_POST['password'];
+
+    // Update Basic Info
+    $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, address=? WHERE email=?");
+    $stmt->bind_param("ssss", $name, $phone, $address, $renter_email);
+    $stmt->execute();
+
+    // Update Password (only if provided)
+    if (!empty($password)) {
+        $hashed = password_hash($password, PASSWORD_DEFAULT);
+        $stmt_pw = $conn->prepare("UPDATE users SET password_hash=? WHERE email=?");
+        $stmt_pw->bind_param("ss", $hashed, $renter_email);
+        $stmt_pw->execute();
+    }
+    
+    $message = "Profile Updated Successfully!";
+}
+
 // 4. DATA FETCHING FOR VIEWS
 $view = isset($_GET['view']) ? $_GET['view'] : 'machines';
 
@@ -183,20 +206,14 @@ $is_qualified = !empty($r_info['license_no']);
 </head>
 <body>
 
-    <div class="navbar">
-        <div>
-            <h2 style="margin:0; display:inline-block;">Torque4Hire</h2>
-            <?php if($is_qualified): ?>
-                <span class="license-badge">✅ License: <?= $r_info['license_no'] ?></span>
-            <?php endif; ?>
-        </div>
-        <div class="nav-tabs">
-            <a href="?view=machines" class="<?= $view=='machines'?'active':'' ?>">🚜 Browse Machines</a>
-            <a href="?view=rentals" class="<?= $view=='rentals'?'active':'' ?>">🧾 My Rentals</a>
-            <a href="?view=trainers" class="<?= $view=='trainers'?'active':'' ?>">👨‍🏫 Find Trainers</a>
-            <a href="logout.php" style="color:#ff6b6b;">Logout</a>
-        </div>
-    </div>
+    <div class="nav-tabs">
+    <a href="?view=machines">🚜 Browse</a>
+    <a href="?view=rentals">📜 History</a>
+    <a href="?view=trainers">👨‍🏫 Trainers</a>
+    <a href="?view=profile" class="<?php echo $view=='profile'?'active':''; ?>">👤 Profile</a>
+    
+    <a href="logout.php" style="color:#ff6b6b;">Logout</a>
+</div>
 
     <div class="container">
         <?php if($message): ?>
@@ -318,8 +335,10 @@ $is_qualified = !empty($r_info['license_no']);
                 <h3>Book Training (1 Hour Minimum)</h3>
                 <form method="POST" action="?view=trainers">
                     <input type="hidden" name="trainer_email" value="<?= $_GET['email'] ?>">
+                    
                     <label>Session Date:</label>
                     <input type="date" name="session_date" required min="<?= date('Y-m-d') ?>" style="width:100%; margin-bottom:15px; padding:10px; background:#2d2d2d; color:white; border:1px solid #444;">
+                    
                     <div style="display:flex; gap:10px; margin-bottom:15px;">
                         <div style="flex:1;">
                             <label>Start Time:</label>
@@ -330,10 +349,35 @@ $is_qualified = !empty($r_info['license_no']);
                             <input type="time" id="end_time" name="end_time" required style="width:100%; padding:10px; background:#2d2d2d; color:white;">
                         </div>
                     </div>
+                    
                     <button type="submit" name="book_trainer" class="btn btn-blue" style="width:100%; padding:12px;">Confirm Training Session</button>
                 </form>
             </div>
+
+        <?php elseif($view == 'profile'): 
+            // Fetch latest user data
+            $user = $conn->query("SELECT * FROM users WHERE email = '$renter_email'")->fetch_assoc();
+        ?>
+            <div class="card" style="max-width: 600px; margin: 0 auto;">
+                <h3>Edit My Profile</h3>
+                <form method="POST" action="?view=profile">
+                    <label>Full Name:</label>
+                    <input type="text" name="name" value="<?php echo htmlspecialchars($user['name']); ?>" required style="width:100%; padding:10px; margin-bottom:10px; background:#2d2d2d; color:white; border:1px solid #444;">
+
+                    <label>Phone Number:</label>
+                    <input type="text" name="phone" value="<?php echo htmlspecialchars($user['phone']); ?>" placeholder="017..." required style="width:100%; padding:10px; margin-bottom:10px; background:#2d2d2d; color:white; border:1px solid #444;">
+
+                    <label>Address:</label>
+                    <input type="text" name="address" value="<?php echo htmlspecialchars($user['address']); ?>" placeholder="City, Area" style="width:100%; padding:10px; margin-bottom:10px; background:#2d2d2d; color:white; border:1px solid #444;">
+
+                    <label style="margin-top:20px; color:#ff6b6b; display:block;">Change Password (Leave blank to keep current):</label>
+                    <input type="password" name="password" placeholder="New Password" style="width:100%; padding:10px; margin-bottom:10px; background:#2d2d2d; color:white; border:1px solid #444;">
+
+                    <button type="submit" name="update_profile" class="btn btn-blue" style="width:100%; padding:12px; margin-top:20px;">Save Changes</button>
+                </form>
+            </div>
+
         <?php endif; ?>
-    </div>
+    </div>   
 </body>
 </html>
