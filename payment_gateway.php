@@ -26,7 +26,6 @@ $real_amount = $rental['total_cost'];
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['process_payment'])) {
     
-    
     $conn->begin_transaction();
     try {
         $update_stmt = $conn->prepare("UPDATE rentals SET rental_status = 'CONFIRMED' WHERE rental_id = ?");
@@ -35,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['process_payment'])) {
 
         $conn->commit();
         echo "<script>
-            alert('Payment of $$real_amount Successful! Your rental is now active.');
+            alert('PAYMENT AUTHORIZED: $$real_amount. TRANSACTION COMPLETE.');
             window.location.href='renter_dashboard.php?view=rentals';
         </script>";
         exit();
@@ -52,39 +51,67 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['process_payment'])) {
     <title>Secure Payment - Torque4Hire</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body { display: block; background: #121212; color: white; padding: 50px; font-family: sans-serif; }
-        .payment-card { max-width: 400px; margin: 0 auto; background: #1f1f1f; padding: 30px; border-radius: 8px; border: 1px solid #333; }
-        .price-display { font-size: 24px; color: #28a745; margin: 20px 0; text-align: center; font-weight: bold; }
-        input { width: 100%; padding: 10px; margin: 10px 0; background: #2d2d2d; border: 1px solid #444; color: white; box-sizing: border-box; }
-        .btn-pay { width: 100%; background: #28a745; color: white; padding: 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        /* Specific Styles for Payment Display */
+        .price-box {
+            background: #1A1A1A;
+            color: #FFD700;
+            padding: 15px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 800;
+            margin: 15px 0;
+            border: 2px solid #FFD700;
+            text-transform: uppercase;
+        }
+
+        .ref-text {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .card-row {
+            display: flex;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="payment-card">
-        <h2 style="text-align: center;">Secure Checkout</h2>
-        <p style="text-align: center; color: #888;">Rental Reference: #<?php echo $rental_id; ?></p>
+    <form method="POST">
+        <h2>💳 Checkout</h2>
         
-        <div class="price-display">
-            Amount Due: $<?php echo number_format($real_amount, 2); ?>
+        <div class="ref-text">Ref ID: #<?php echo $rental_id; ?></div>
+        
+        <div class="price-box">
+            $<?php echo number_format($real_amount, 2); ?>
         </div>
 
-        <form method="POST">
-            <label>Cardholder Name</label>
-            <input type="text" placeholder="John Doe" required>
-            
-            <label>Card Number</label>
-            <input type="text" placeholder="1234 5678 9101 1121" maxlength="16" required>
-            
-            <div style="display:flex; gap:10px;">
-                <input type="text" placeholder="MM/YY" maxlength="5" required>
-                <input type="text" placeholder="CVV" maxlength="3" required>
+        <label>Cardholder Name</label>
+        <input type="text" placeholder="NAME ON CARD" required style="text-transform:uppercase;">
+        
+        <label>Card Number</label>
+        <input type="text" placeholder="0000 0000 0000 0000" maxlength="19" required>
+        
+        <div class="card-row">
+            <div style="flex:1">
+                <label>Expiry</label>
+                <input type="text" placeholder="MM/YY" maxlength="5" required style="text-align:center;">
             </div>
+            <div style="flex:1">
+                <label>CVV</label>
+                <input type="text" placeholder="123" maxlength="3" required style="text-align:center;">
+            </div>
+        </div>
 
-            <button type="submit" name="process_payment" class="btn-pay">Pay $<?php echo number_format($real_amount, 2); ?></button>
-            <a href="renter_dashboard.php?view=rentals" style="display:block; text-align:center; color:#888; margin-top:15px; text-decoration:none;">Cancel and Go Back</a>
-        </form>
-    </div>
+        <button type="submit" name="process_payment">AUTHORIZE PAYMENT</button>
+        
+        <a href="renter_dashboard.php?view=rentals" style="color:#d32f2f;">CANCEL TRANSACTION</a>
+    </form>
 
 </body>
 </html>

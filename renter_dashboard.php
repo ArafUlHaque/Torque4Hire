@@ -1,5 +1,5 @@
 <?php
-// 1. SESSION & DATABASE (Fixed to prevent the Notice error)
+// 1. SESSION & DATABASE
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -13,11 +13,11 @@ if (!isset($_SESSION['user_email']) || $_SESSION['role'] != 'RENTER') {
 
 $renter_email = $_SESSION['user_email'];
 $message = "";
-if(isset($_GET['msg'])) $message = $_GET['msg']; // Catching messages from payment_gateway.php
+if(isset($_GET['msg'])) $message = $_GET['msg']; 
 
 // 3. LOGIC HANDLERS (POST & GET Requests)
 
-// A. Handle Rental Submission (From Machinery View)
+// A. Handle Rental Submission
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_rent'])) {
     $machine_id = $_POST['machine_id'];
     $start_date = $_POST['start_date'];
@@ -34,7 +34,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_rent'])) {
         $days = $interval->days + 1; 
         $total_cost = $days * $daily_rate;
 
-        // Transaction to ensure both rental and machine status update
         $conn->begin_transaction();
         try {
             $stmt = $conn->prepare("INSERT INTO rentals (renter_email, machine_id, start_date, end_date, total_cost, rental_status) VALUES (?, ?, ?, ?, ?, 'REQUESTED')");
@@ -51,7 +50,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_rent'])) {
     }
 }
 
-// B. Handle Return Machine (WITH PENALTY CHECK LOGIC)
+// B. Handle Return Machine
 if (isset($_GET['action']) && $_GET['action'] == 'return' && isset($_GET['rental_id'])) {
     $rental_id = $_GET['rental_id'];
     $machine_id = $_GET['machine_id'];
@@ -98,14 +97,13 @@ if (isset($_GET['action']) && $_GET['action'] == 'return' && isset($_GET['rental
     }
 }
 
-// C. Handle Trainer Booking (HOURLY REALISM & INSTANT LICENSE)
+// C. Handle Trainer Booking
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_trainer'])) {
     $trainer_email = $_POST['trainer_email'];
     $session_date = $_POST['session_date'];
     $start_time = $session_date . " " . $_POST['start_time'];
     $end_time = $session_date . " " . $_POST['end_time'];
 
-    // 1. Conflict Check: Trainer double-booking
     $check_sql = "SELECT * FROM training_sessions WHERE trainer_email = ? AND ((session_start < ? AND session_end > ?))";
     $stmt_check = $conn->prepare($check_sql);
     $stmt_check->bind_param("sss", $trainer_email, $end_time, $start_time);
@@ -114,13 +112,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['book_trainer'])) {
     if ($stmt_check->get_result()->num_rows > 0) {
         $message = "Error: This trainer is already booked for this time slot!";
     } else {
-        // 2. Insert Booking
         $sql_book = "INSERT INTO training_sessions (trainer_email, renter_email, session_start, session_end) VALUES (?, ?, ?, ?)";
         $stmt_book = $conn->prepare($sql_book);
         $stmt_book->bind_param("ssss", $trainer_email, $renter_email, $start_time, $end_time);
 
         if ($stmt_book->execute()) {
-            // 3. Instant License: Updating the 'renters' table
             $generated_license = "HM-" . rand(100000, 999999);
             $update_sql = "UPDATE renters SET license_no = ? WHERE renter_email = ?";
             $stmt_update = $conn->prepare($update_sql);
@@ -139,12 +135,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
     $address = $_POST['address'];
     $password = $_POST['password'];
 
-    // Update Basic Info
     $stmt = $conn->prepare("UPDATE users SET name=?, phone=?, address=? WHERE email=?");
     $stmt->bind_param("ssss", $name, $phone, $address, $renter_email);
     $stmt->execute();
 
-    // Update Password (only if provided)
     if (!empty($password)) {
         $hashed = password_hash($password, PASSWORD_DEFAULT);
         $stmt_pw = $conn->prepare("UPDATE users SET password_hash=? WHERE email=?");
@@ -155,10 +149,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
     $message = "Profile Updated Successfully!";
 }
 
-// 4. DATA FETCHING FOR VIEWS
+// 4. DATA FETCHING
 $view = isset($_GET['view']) ? $_GET['view'] : 'machines';
-
-// Check if user is qualified
 $check_q = $conn->query("SELECT license_no FROM renters WHERE renter_email = '$renter_email'");
 $r_info = $check_q->fetch_assoc();
 $is_qualified = !empty($r_info['license_no']);
@@ -170,27 +162,129 @@ $is_qualified = !empty($r_info['license_no']);
     <title>Renter Dashboard - Torque4Hire</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body { display: block; padding: 0; background: #121212; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; }
-        .navbar { background: #1f1f1f; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
-        .nav-tabs a { color: #888; text-decoration: none; margin-left: 20px; font-weight: 500; padding: 5px 0; }
-        .nav-tabs a.active { color: #007bff; border-bottom: 2px solid #007bff; }
-        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
-        .grid-box { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .card { background: #1f1f1f; padding: 20px; border-radius: 8px; border: 1px solid #333; transition: transform 0.2s; }
-        .card:hover { transform: translateY(-5px); }
-        table { width: 100%; border-collapse: collapse; background: #1f1f1f; margin-top: 20px; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 15px; border-bottom: 1px solid #333; text-align: left; }
-        th { background: #2d2d2d; color: #007bff; }
-        .btn { padding: 10px 15px; border-radius: 4px; text-decoration: none; display: inline-block; font-weight: bold; text-align: center; border: none; cursor: pointer; }
-        .btn-blue { background: #007bff; color: white; }
-        .btn-yellow { background: #ffc107; color: black; }
-        .btn-red { background: #dc3545; color: white; }
+        /* RENTER SPECIFIC OVERRIDES */
+        body { 
+            display: block; 
+            padding: 0; 
+            /* Background Inherited from style.css */
+        }
+
+        /* Yellow Navbar */
+        .navbar { 
+            background: #FFD700; 
+            padding: 15px 30px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 5px solid #b39700;
+        }
+
+        /* Nav Tabs Layout Fix: Horizontal Flex */
+        .nav-tabs {
+            display: flex;
+            align-items: center;
+            gap: 20px; /* Spacing between links */
+        }
+
+        .nav-tabs a { 
+            color: #1A1A1A; 
+            text-decoration: none; 
+            font-weight: 800; 
+            text-transform: uppercase;
+            padding: 5px 0; 
+            /* Removed margin-left to use 'gap' instead */
+        }
+
+        .nav-tabs a.active { 
+            border-bottom: 3px solid #1A1A1A; 
+        }
+
+        .container { 
+            max-width: 1200px; 
+            margin: 30px auto; 
+            padding: 0 20px; 
+        }
+
+        .grid-box { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+            gap: 20px; 
+        }
+
+        /* White Cards for Content */
+        .card { 
+            background: #ffffff; 
+            padding: 20px; 
+            border: none;
+            border-top: 5px solid #1A1A1A;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); 
+            color: #1A1A1A;
+            
+            /* Flex layout to align button at bottom */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card h3, .card h4 {
+            color: #1A1A1A;
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+
+        .card p {
+            color: #555;
+            font-weight: 500;
+        }
+
+        /* Industrial Tables */
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            background: white; 
+            margin-top: 20px; 
+            border: 1px solid #1A1A1A;
+        }
+
+        th, td { 
+            padding: 15px; 
+            border-bottom: 1px solid #ddd; 
+            text-align: left; 
+            color: #1A1A1A;
+        }
+
+        th { 
+            background: #1A1A1A; 
+            color: #FFD700; 
+            text-transform: uppercase;
+        }
+
+        /* Buttons within Dashboard */
+        .btn { 
+            width: 100%; /* Ensure full width */
+            box-sizing: border-box; /* Prevent padding from breaking layout */
+            padding: 15px; 
+            text-decoration: none; 
+            display: block; /* Ensures block behavior */
+            font-weight: 900; 
+            text-align: center; 
+            border: none; 
+            cursor: pointer; 
+            text-transform: uppercase;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+            margin-top: 20px; /* Safe distance from content */
+        }
+        
+        .btn:active { transform: translateY(2px); box-shadow: none; }
+
+        .btn-blue { background: #FFD700; color: #1A1A1A; } /* Main Action = Yellow */
+        .btn-yellow { background: #1A1A1A; color: #FFD700; } /* Secondary = Dark */
+        .btn-red { background: #d32f2f; color: white; }
         .btn-green { background: #28a745; color: white; }
-        .license-badge { background: #007bff; color: white; padding: 5px 10px; border-radius: 4px; font-size: 14px; margin-left: 10px; }
     </style>
 
     <script>
-        // HOURLY BOOKING VALIDATION
         function restrictEndTime() {
             const startInput = document.getElementById('start_time');
             const endInput = document.getElementById('end_time');
@@ -206,19 +300,21 @@ $is_qualified = !empty($r_info['license_no']);
 </head>
 <body>
 
-    <div class="nav-tabs">
-    <a href="?view=machines">🚜 Browse</a>
-    <a href="?view=rentals">📜 History</a>
-    <a href="?view=trainers">👨‍🏫 Trainers</a>
-    <a href="?view=profile" class="<?php echo $view=='profile'?'active':''; ?>">👤 Profile</a>
-    
-    <a href="logout.php" style="color:#ff6b6b;">Logout</a>
-</div>
+    <div class="navbar">
+        <h2 style="margin:0; font-size:24px; color:#1A1A1A;">🚜 Torque4Hire</h2>
+        <div class="nav-tabs">
+            <a href="?view=machines" class="<?php echo $view=='machines'?'active':''; ?>">Browse</a>
+            <a href="?view=rentals" class="<?php echo $view=='rentals'?'active':''; ?>">History</a>
+            <a href="?view=trainers" class="<?php echo $view=='trainers'?'active':''; ?>">Trainers</a>
+            <a href="?view=profile" class="<?php echo $view=='profile'?'active':''; ?>">Profile</a>
+            <a href="logout.php" style="color:#d32f2f;">Logout</a>
+        </div>
+    </div>
 
     <div class="container">
         <?php if($message): ?>
-            <div style="background: #28a745; color: white; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: center;">
-                <b><?= $message ?></b>
+            <div style="background: #28a745; color: white; padding: 15px; margin-bottom: 20px; text-align: center; font-weight:bold; text-transform:uppercase; box-shadow: 0 5px 10px rgba(0,0,0,0.3);">
+                <?= $message ?>
             </div>
         <?php endif; ?>
 
@@ -234,24 +330,26 @@ $is_qualified = !empty($r_info['license_no']);
             $machines = $conn->query($sql);
         ?>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3>Available Machinery</h3>
+                <h3 style="color:#FFD700; text-transform:uppercase;">Available Machinery</h3>
                 <form method="GET" style="display:flex; gap:10px; background:transparent; padding:0; border:none; box-shadow:none; width:auto;">
                     <input type="hidden" name="view" value="machines">
-                    <input type="text" name="search" placeholder="Search machines..." value="<?= htmlspecialchars($search) ?>" style="padding:8px; border-radius:4px; background:#2d2d2d; color:white; border:1px solid #444;">
-                    <button type="submit" class="btn btn-blue" style="padding:8px 15px;">🔍</button>
+                    <input type="text" name="search" placeholder="Search machines..." value="<?= htmlspecialchars($search) ?>" style="padding:10px; border:2px solid #555; color:black;">
+                    <button type="submit" class="btn btn-blue" style="padding:10px 15px; margin:0;">SEARCH</button>
                 </form>
             </div>
             <div class="grid-box">
                 <?php while($row = $machines->fetch_assoc()): ?>
                     <div class="card">
-                        <small style="color:#007bff; font-weight:bold;"><?= htmlspecialchars($row['category_name']) ?></small>
-                        <h4 style="margin:10px 0;"><?= htmlspecialchars($row['model_name']) ?></h4>
-                        <p style="font-size:14px; color:#aaa;">Provider: <?= htmlspecialchars($row['company_name']) ?></p>
-                        <h3 style="color:#28a745;">$<?= $row['daily_rate'] ?> <small>/ day</small></h3>
+                        <div>
+                            <small style="color:#666; font-weight:bold; letter-spacing:1px;"><?= htmlspecialchars($row['category_name']) ?></small>
+                            <h4 style="margin:10px 0; font-size:1.2em;"><?= htmlspecialchars($row['model_name']) ?></h4>
+                            <p style="font-size:14px; margin-bottom:15px;">Provider: <b><?= htmlspecialchars($row['company_name']) ?></b></p>
+                            <h3 style="color:#1A1A1A; border-bottom:none;">$<?= $row['daily_rate'] ?> <small style="font-size:0.6em">/ DAY</small></h3>
+                        </div>
                         <?php if($is_qualified): ?>
-                            <a href="?view=rent_form&id=<?= $row['machine_id'] ?>" class="btn btn-blue" style="width:90%; margin-top:10px;">Rent Now</a>
+                            <a href="?view=rent_form&id=<?= $row['machine_id'] ?>" class="btn btn-blue">Rent Now</a>
                         <?php else: ?>
-                            <a href="?view=trainers" class="btn btn-yellow" style="width:90%; margin-top:10px;">Training Required</a>
+                            <a href="?view=trainers" class="btn btn-yellow">Training Required</a>
                         <?php endif; ?>
                     </div>
                 <?php endwhile; ?>
@@ -263,14 +361,14 @@ $is_qualified = !empty($r_info['license_no']);
         ?>
             <div style="max-width:500px; margin:0 auto;" class="card">
                 <h3>Confirm Rental: <?= htmlspecialchars($machine['model_name']) ?></h3>
-                <form method="POST" action="?view=rentals">
+                <form method="POST" action="?view=rentals" style="padding:0; box-shadow:none; width:auto; border:none; border-top:none;">
                     <input type="hidden" name="machine_id" value="<?= $m_id ?>">
                     <input type="hidden" name="daily_rate" value="<?= $machine['daily_rate'] ?>">
                     <label>Start Date:</label>
-                    <input type="date" name="start_date" required min="<?= date('Y-m-d') ?>" style="width:100%; margin:10px 0; padding:10px; background:#2d2d2d; color:white; border:1px solid #444;">
+                    <input type="date" name="start_date" required min="<?= date('Y-m-d') ?>">
                     <label>End Date:</label>
-                    <input type="date" name="end_date" required min="<?= date('Y-m-d') ?>" style="width:100%; margin:10px 0; padding:10px; background:#2d2d2d; color:white; border:1px solid #444;">
-                    <button type="submit" name="confirm_rent" class="btn btn-blue" style="width:100%; margin-top:20px;">Confirm Request</button>
+                    <input type="date" name="end_date" required min="<?= date('Y-m-d') ?>">
+                    <button type="submit" name="confirm_rent" class="btn btn-blue">Confirm Request</button>
                 </form>
             </div>
 
@@ -280,30 +378,27 @@ $is_qualified = !empty($r_info['license_no']);
                                    JOIN owners o ON m.owner_email = o.owner_email 
                                    WHERE r.renter_email = '$renter_email' ORDER BY r.rental_id DESC");
         ?>
-            <h3>My Rental History</h3>
+            <h3 style="color:#FFD700; text-transform:uppercase;">My Rental History</h3>
             <table>
                 <thead><tr><th>Machine</th><th>Dates</th><th>Cost</th><th>Status</th><th>Action</th></tr></thead>
                 <tbody>
                     <?php while($row = $rentals->fetch_assoc()): $s = $row['rental_status']; ?>
                     <tr>
                         <td><b><?= htmlspecialchars($row['model_name']) ?></b><br><small><?= htmlspecialchars($row['company_name']) ?></small></td>
-                        <td><?= $row['start_date'] ?> to <?= $row['end_date'] ?></td>
+                        <td><?= $row['start_date'] ?> <br>to <?= $row['end_date'] ?></td>
                         <td>$<?= $row['total_cost'] ?></td>
                         <td><b><?= $s ?></b></td>
                         <td>
                             <?php if($s == 'PAYMENT_PENDING' || $s == 'REQUESTED'): ?>
-                                <a href="payment_gateway.php?rental_id=<?php echo $row['rental_id']; ?>" 
-                                style="background:#28a745; color:white; padding:5px 10px; border-radius:4px; text-decoration:none; font-weight:bold; font-size:12px;">
-                                Pay Now
-                            </a>
+                                <a href="payment_gateway.php?rental_id=<?php echo $row['rental_id']; ?>" class="btn btn-green" style="font-size:12px; margin-top:0; padding:10px;">Pay Now</a>
                             <?php elseif($s == 'CONFIRMED'): ?>
                                 <a href="?view=rentals&action=return&rental_id=<?php echo $row['rental_id']; ?>&machine_id=<?php echo $row['machine_id']; ?>" 
                                     onclick="return confirm('Return this machine?')" 
-                                    style="background:#dc3545; color:white; padding:5px 10px; border-radius:4px; text-decoration:none; font-size:12px;">
+                                    class="btn btn-red" style="font-size:12px; margin-top:0; padding:10px;">
                                     Return
                                 </a>
                             <?php else: ?>
-                                <span style="color:#888;">Waiting...</span>
+                                <span style="color:#888;">-</span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -314,17 +409,19 @@ $is_qualified = !empty($r_info['license_no']);
         <?php elseif($view == 'trainers'): 
             $trainers = $conn->query("SELECT t.*, u.name FROM trainers t JOIN users u ON t.trainer_email = u.email");
         ?>
-            <h3>Expert Trainers</h3>
+            <h3 style="color:#FFD700; text-transform:uppercase;">Expert Trainers</h3>
             <div class="grid-box">
                 <?php while($row = $trainers->fetch_assoc()): ?>
                     <div class="card">
-                        <h4><?= htmlspecialchars($row['name']) ?></h4>
-                        <p>Expertise: <b><?= htmlspecialchars($row['expertise']) ?></b></p>
-                        <p>Status: <span style="color:<?= $row['availability']=='AVAILABLE'?'#28a745':'#ffc107' ?>"><?= $row['availability'] ?></span></p>
+                        <div>
+                            <h4><?= htmlspecialchars($row['name']) ?></h4>
+                            <p>Expertise: <b><?= htmlspecialchars($row['expertise']) ?></b></p>
+                            <p>Status: <span style="color:<?= $row['availability']=='AVAILABLE'?'#28a745':'#f57c00' ?>"><?= $row['availability'] ?></span></p>
+                        </div>
                         <?php if($row['availability'] == 'AVAILABLE'): ?>
-                            <a href="?view=book_trainer_form&email=<?= $row['trainer_email'] ?>" class="btn btn-blue" style="width:100%;">Book Session</a>
+                            <a href="?view=book_trainer_form&email=<?= $row['trainer_email'] ?>" class="btn btn-blue">Book Session</a>
                         <?php else: ?>
-                            <button disabled class="btn" style="width:100%; background:#444;">Unavailable</button>
+                            <button disabled class="btn" style="background:#ccc; cursor:not-allowed;">Unavailable</button>
                         <?php endif; ?>
                     </div>
                 <?php endwhile; ?>
@@ -332,48 +429,47 @@ $is_qualified = !empty($r_info['license_no']);
 
         <?php elseif($view == 'book_trainer_form'): ?>
             <div style="max-width:500px; margin:0 auto;" class="card">
-                <h3>Book Training (1 Hour Minimum)</h3>
-                <form method="POST" action="?view=trainers">
+                <h3>Book Training</h3>
+                <form method="POST" action="?view=trainers" style="padding:0; box-shadow:none; width:auto; border:none; border-top:none;">
                     <input type="hidden" name="trainer_email" value="<?= $_GET['email'] ?>">
                     
                     <label>Session Date:</label>
-                    <input type="date" name="session_date" required min="<?= date('Y-m-d') ?>" style="width:100%; margin-bottom:15px; padding:10px; background:#2d2d2d; color:white; border:1px solid #444;">
+                    <input type="date" name="session_date" required min="<?= date('Y-m-d') ?>">
                     
                     <div style="display:flex; gap:10px; margin-bottom:15px;">
                         <div style="flex:1;">
                             <label>Start Time:</label>
-                            <input type="time" id="start_time" name="start_time" required onchange="restrictEndTime()" style="width:100%; padding:10px; background:#2d2d2d; color:white;">
+                            <input type="time" id="start_time" name="start_time" required onchange="restrictEndTime()">
                         </div>
                         <div style="flex:1;">
                             <label>End Time:</label>
-                            <input type="time" id="end_time" name="end_time" required style="width:100%; padding:10px; background:#2d2d2d; color:white;">
+                            <input type="time" id="end_time" name="end_time" required>
                         </div>
                     </div>
                     
-                    <button type="submit" name="book_trainer" class="btn btn-blue" style="width:100%; padding:12px;">Confirm Training Session</button>
+                    <button type="submit" name="book_trainer" class="btn btn-blue">Confirm Session</button>
                 </form>
             </div>
 
         <?php elseif($view == 'profile'): 
-            // Fetch latest user data
             $user = $conn->query("SELECT * FROM users WHERE email = '$renter_email'")->fetch_assoc();
         ?>
             <div class="card" style="max-width: 600px; margin: 0 auto;">
                 <h3>Edit My Profile</h3>
-                <form method="POST" action="?view=profile">
+                <form method="POST" action="?view=profile" style="padding:0; box-shadow:none; width:auto; border:none; border-top:none;">
                     <label>Full Name:</label>
-                    <input type="text" name="name" value="<?php echo htmlspecialchars($user['name']); ?>" required style="width:100%; padding:10px; margin-bottom:10px; background:#2d2d2d; color:white; border:1px solid #444;">
+                    <input type="text" name="name" value="<?php echo htmlspecialchars($user['name']); ?>" required>
 
                     <label>Phone Number:</label>
-                    <input type="text" name="phone" value="<?php echo htmlspecialchars($user['phone']); ?>" placeholder="017..." required style="width:100%; padding:10px; margin-bottom:10px; background:#2d2d2d; color:white; border:1px solid #444;">
+                    <input type="text" name="phone" value="<?php echo htmlspecialchars($user['phone']); ?>">
 
                     <label>Address:</label>
-                    <input type="text" name="address" value="<?php echo htmlspecialchars($user['address']); ?>" placeholder="City, Area" style="width:100%; padding:10px; margin-bottom:10px; background:#2d2d2d; color:white; border:1px solid #444;">
+                    <input type="text" name="address" value="<?php echo htmlspecialchars($user['address']); ?>">
 
-                    <label style="margin-top:20px; color:#ff6b6b; display:block;">Change Password (Leave blank to keep current):</label>
-                    <input type="password" name="password" placeholder="New Password" style="width:100%; padding:10px; margin-bottom:10px; background:#2d2d2d; color:white; border:1px solid #444;">
+                    <label style="margin-top:20px; color:#d32f2f;">Change Password (Optional):</label>
+                    <input type="password" name="password" placeholder="New Password">
 
-                    <button type="submit" name="update_profile" class="btn btn-blue" style="width:100%; padding:12px; margin-top:20px;">Save Changes</button>
+                    <button type="submit" name="update_profile" class="btn btn-blue">Save Changes</button>
                 </form>
             </div>
 

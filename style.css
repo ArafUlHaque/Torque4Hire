@@ -1,65 +1,124 @@
+/* TORQUE4HIRE - INDUSTRIAL MODERNISM THEME */
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f4f4f9;
+    background-color: #1A1A1A; /* Dark Asphalt Background */
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
     margin: 0;
+    color: #e0e0e0; /* Light text for any elements outside the white box */
 }
 
-h2 {
-    color: #333;
-    text-align: center;
-    margin-top: 0;
-}
-
+/* --- FORM CONTAINER --- */
 form {
-    background: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    width: 350px;
+    background: #ffffff; /* White content background */
+    padding: 40px;
+    width: 380px;
     display: flex;
     flex-direction: column;
+    
+    /* Industrial Block Styling */
+    border-radius: 2px; /* Sharp, blocky corners */
+    border-top: 6px solid #FFD700; /* Safety Yellow Top Accent */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7); /* Deep, heavy shadow */
 }
 
+/* --- HEADINGS --- */
+h2 {
+    color: #1A1A1A; /* Dark Asphalt text */
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 25px;
+    text-transform: uppercase; /* Industrial signage look */
+    font-weight: 800;
+    letter-spacing: 1px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 15px;
+}
+
+/* --- INPUTS & SELECTS --- */
 input, select {
-    padding: 10px;
+    padding: 12px;
     margin: 10px 0;
-    border: 1px solid #ddd;
-    border-radius: 4px;
     font-size: 16px;
     width: 100%;
     box-sizing: border-box;
+    background-color: #f8f8f8;
+    color: #333;
+    
+    /* Robust Border Styling */
+    border: 2px solid #ccc; /* Thicker, rugged borders */
+    border-radius: 0px; /* Perfectly square corners */
+    transition: border-color 0.3s;
 }
 
+input:focus, select:focus {
+    outline: none;
+    border-color: #FFD700; /* Safety Yellow Glow on Focus */
+    background-color: #fff;
+}
+
+/* Labels (if used outside placeholder) */
+label {
+    color: #444;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    margin-top: 5px;
+}
+
+/* --- CALL TO ACTION BUTTONS --- */
 button {
-    background-color: #28a745;
-    color: white;
-    padding: 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+    background-color: #FFD700; /* Safety Yellow */
+    color: #1A1A1A; /* Dark Text for high contrast */
+    padding: 14px;
+    margin-top: 20px;
     font-size: 16px;
-    margin-top: 10px;
-    transition: background 0.3s;
+    font-weight: 900; /* Extra Bold */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    
+    /* Blocky Button Styling */
+    border: none;
+    border-radius: 0px; 
+    box-shadow: 0 4px 0 #b39700; /* 3D "Pressable" effect (Darker Yellow) */
+    transition: all 0.2s;
 }
 
 button:hover {
-    background-color: #218838;
+    background-color: #ffdb1a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #b39700;
 }
 
+button:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #b39700;
+}
+
+/* --- LINKS --- */
 a {
     display: block;
     text-align: center;
-    margin-top: 15px;
-    color: #007bff;
+    margin-top: 20px;
+    color: #1A1A1A;
+    text-decoration: underline;
+    text-decoration-color: #FFD700; /* Yellow underline */
+    text-underline-offset: 4px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+a:hover {
+    background-color: #FFD700;
+    color: #1A1A1A;
     text-decoration: none;
 }
 
-/*For password toggel & hidden fields*/
-
+/* --- UTILITIES --- */
 .hidden {
     display: none;
 }
@@ -67,21 +126,35 @@ a {
 .password-wrapper {
     position: relative;
     width: 100%;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
 }
 
 .password-wrapper input {
-    margin: 0;
+    margin: 10px 0;
     padding-right: 40px;
 }
 
 .toggle-icon {
     position: absolute;
-    right: 10px;
+    right: 15px;
     top: 50%;
     transform: translateY(-50%);
     cursor: pointer;
     font-size: 18px;
-    color: #666;
+    color: #555;
     user-select: none;
+}
+
+.show-pass-wrapper {
+    color: #555;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.show-pass-wrapper input {
+    width: auto;
+    margin-right: 10px;
 }

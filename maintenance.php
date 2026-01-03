@@ -13,13 +13,11 @@ $message = "";
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['start_maintenance'])) {
     $m_id = $_POST['machine_id'];
     $start = $_POST['start_date'];
-    $end = $_POST['end_date']; // Expected end date
+    $end = $_POST['end_date']; 
     $desc = $_POST['description'];
 
     $conn->begin_transaction();
     try {
-        // A. Insert into Maintenance Table
-        // Use a subquery to generate a new maintenance_id for this specific machine
         $id_check = $conn->query("SELECT MAX(maintenance_id) as max_id FROM maintenance WHERE machine_id = $m_id");
         $next_id = $id_check->fetch_assoc()['max_id'] + 1;
 
@@ -27,7 +25,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['start_maintenance'])) 
         $stmt->bind_param("iiss", $m_id, $next_id, $start, $end);
         $stmt->execute();
 
-        // B. Mark Machine as Unavailable
         $conn->query("UPDATE machinery SET status = 'MAINTENANCE' WHERE machine_id = $m_id");
 
         $conn->commit();
@@ -40,11 +37,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['start_maintenance'])) 
     }
 }
 
-// 3. HANDLE "FINISH MAINTENANCE" (Called via URL link)
+// 3. HANDLE "FINISH MAINTENANCE"
 if (isset($_GET['action']) && $_GET['action'] == 'finish' && isset($_GET['id'])) {
     $m_id = $_GET['id'];
-    
-    // Set status back to AVAILABLE
     if($conn->query("UPDATE machinery SET status = 'AVAILABLE' WHERE machine_id = $m_id")) {
         header("Location: owner_dashboard.php?msg=Machine is now Available!");
         exit();
@@ -53,7 +48,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'finish' && isset($_GET['id']))
     }
 }
 
-// 4. FETCH MACHINE DETAILS (For the Form)
+// 4. FETCH MACHINE DETAILS
 $machine = null;
 if (isset($_GET['id'])) {
     $id = $_GET['id'];
@@ -64,33 +59,40 @@ if (isset($_GET['id'])) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Maintenance Report</title>
+    <title>Maintenance Ticket - Torque4Hire</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <form method="POST" action="">
-        <h2 style="margin-top:0;">Report Maintenance</h2>
-        <?php if($message) echo "<p style='color:red;'>$message</p>"; ?>
+        <h2 style="color:#d32f2f; border-color:#d32f2f;">⚠️ Service Ticket</h2>
+        
+        <?php if($message) echo "<p style='color:red; text-align:center; font-weight:bold;'>$message</p>"; ?>
 
         <?php if($machine): ?>
-            <p>Machine: <b><?php echo htmlspecialchars($machine['model_name']); ?></b></p>
+            <p style="text-align:center; margin-bottom:20px; font-size:1.1em;">
+                Unit: <b><?php echo htmlspecialchars($machine['model_name']); ?></b>
+            </p>
             
             <input type="hidden" name="machine_id" value="<?php echo $machine['machine_id']; ?>">
             
             <label>Start Date:</label>
             <input type="date" name="start_date" value="<?php echo date('Y-m-d'); ?>" required>
             
-            <label>Expected Finish Date:</label>
+            <label>Est. Finish Date:</label>
             <input type="date" name="end_date" required>
 
             <label>Issue Description:</label>
-            <input type="text" name="description" placeholder="e.g. Engine Overheating" required>
+            <input type="text" name="description" placeholder="e.g. Hydraulic Leak" required>
 
-            <button type="submit" name="start_maintenance" style="background:#ffc107; color:black;">Mark as Maintenance</button>
-            <a href="owner_dashboard.php" style="display:block; text-align:center; margin-top:10px;">Cancel</a>
+            <button type="submit" name="start_maintenance" style="background:#1A1A1A; color:#FFD700; border:1px solid #FFD700;">
+                INITIATE MAINTENANCE
+            </button>
+            
+            <a href="owner_dashboard.php">CANCEL REQUEST</a>
         
         <?php else: ?>
-            <p>Invalid Machine.</p>
+            <p style="text-align:center;">Invalid Machine ID.</p>
+            <a href="owner_dashboard.php">Back to Dashboard</a>
         <?php endif; ?>
     </form>
 </body>

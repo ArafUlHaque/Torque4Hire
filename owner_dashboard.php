@@ -67,30 +67,120 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Owner Dashboard</title>
+    <title>Owner Dashboard - Torque4Hire</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body { display: block; background-color: #f4f6f9; padding: 20px; }
-        .dashboard-container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 3fr; gap: 30px; }
-        .navbar { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 30px; border-radius: 8px; margin-bottom: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 15px; border-bottom: 1px solid #eee; text-align: left; }
-        th { background: #f8f9fa; }
+        /* DASHBOARD SPECIFIC OVERRIDES */
+        body { 
+            display: block; 
+            padding: 20px; 
+            /* Background is inherited from style.css (Dark Asphalt) */
+        }
+
+        .dashboard-container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            display: grid; 
+            grid-template-columns: 1fr 3fr; 
+            gap: 30px; 
+        }
+
+        /* Industrial Navbar: Safety Yellow Strip */
+        .navbar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: #FFD700; /* Safety Yellow */
+            padding: 15px 30px; 
+            border-bottom: 5px solid #b39700; /* Darker Yellow Border */
+            margin-bottom: 30px; 
+        }
+
+        .navbar h2 {
+            margin: 0;
+            border: none;
+            padding: 0;
+            color: #1A1A1A;
+            font-size: 24px;
+        }
+
+        .navbar a {
+            display: inline-block;
+            margin: 0 10px;
+            color: #1A1A1A;
+            font-weight: 800;
+            text-transform: uppercase;
+            text-decoration: none;
+        }
+        
+        .navbar a:hover {
+            text-decoration: underline;
+        }
+
+        /* Content Cards: White Blocks */
+        .card { 
+            background: white; 
+            padding: 25px; 
+            border-top: 5px solid #1A1A1A; /* Dark Top Accent */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); 
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: #1A1A1A;
+            text-transform: uppercase;
+            font-weight: 800;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        /* Industrial Table */
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 15px; 
+        }
+        
+        th, td { 
+            padding: 15px; 
+            text-align: left; 
+            border: 1px solid #ddd; 
+        }
+
+        th { 
+            background: #1A1A1A; 
+            color: #FFD700; /* Yellow Text on Dark Header */
+            text-transform: uppercase;
+            font-size: 14px;
+        }
+
+        td {
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* Links inside tables */
+        td a {
+            display: inline;
+            margin: 0 5px;
+            font-size: 13px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
     <div class="navbar">
-        <h2>Owner Dashboard</h2>
+        <h2>🏗️ Owner Panel</h2>
         <div>
-            <a href="?view=dashboard" style="display:inline; margin-right:20px;">📊 My Fleet</a>
-            <a href="?view=profile" style="display:inline; margin-right:20px;">👤 Edit Profile</a>
-            <a href="logout.php" style="color:red; display:inline;">Logout</a>
+            <a href="?view=dashboard">📊 Fleet</a>
+            <a href="?view=profile">👤 Profile</a>
+            <a href="logout.php" style="color:#d32f2f;">Logout</a>
         </div>
     </div>
 
-    <?php if($message) echo "<p style='text-align:center; color:green; background:white; padding:10px;'>$message</p>"; ?>
+    <?php if($message) echo "<div style='background:#28a745; color:white; padding:15px; text-align:center; margin-bottom:20px; font-weight:bold; text-transform:uppercase;'>$message</div>"; ?>
 
     <?php if($view == 'dashboard') { 
         $my_machines = $conn->query("SELECT m.*, c.category_name FROM machinery m JOIN machine_categories c ON m.category_id = c.category_id WHERE m.owner_email = '$email' ORDER BY m.machine_id DESC");
@@ -99,19 +189,26 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
         <div class="dashboard-container">
             <div class="card" style="height:fit-content;">
                 <h3>+ Add Machine</h3>
-                <form method="POST" action="?view=dashboard" style="padding:0; box-shadow:none; width:auto;">
-                    <input type="text" name="model_name" placeholder="Model Name" required>
+                <form method="POST" action="?view=dashboard" style="padding:0; box-shadow:none; width:auto; border:none; border-top:none;">
+                    <label>Model Name</label>
+                    <input type="text" name="model_name" placeholder="e.g. CAT D5 Dozer" required>
+                    
+                    <label>Category</label>
                     <select name="category_id" required>
                         <option value="" disabled selected>Select Category</option>
                         <?php while($c = $cats->fetch_assoc()) echo "<option value='{$c['category_id']}'>{$c['category_name']}</option>"; ?>
                     </select>
-                    <input type="number" name="daily_rate" placeholder="Daily Rate ($)" required>
-                    <button type="submit" name="add_machine">Add</button>
+                    
+                    <label>Daily Rate ($)</label>
+                    <input type="number" name="daily_rate" placeholder="0.00" required>
+                    
+                    <button type="submit" name="add_machine">Deploy Asset</button>
                 </form>
             </div>
 
             <div class="card">
                 <h3>My Inventory</h3>
+                <?php if($my_machines->num_rows > 0) { ?>
                 <table>
                     <thead><tr><th>Model</th><th>Category</th><th>Rate</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody>
@@ -120,19 +217,22 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
                             <td><?php echo $row['model_name']; ?></td>
                             <td><?php echo $row['category_name']; ?></td>
                             <td>$<?php echo $row['daily_rate']; ?></td>
-                            <td><?php echo $row['status']; ?></td>
+                            <td style="font-weight:bold; color:<?php echo $row['status']=='AVAILABLE'?'green':($row['status']=='MAINTENANCE'?'orange':'red'); ?>">
+                                <?php echo $row['status']; ?>
+                            </td>
                             <td>
                                 <?php if($row['status']=='AVAILABLE') { ?>
-                                    <a href="?delete=<?php echo $row['machine_id']; ?>" style="color:red;" onclick="return confirm('Delete?')">Delete</a>
-                                    <a href="maintenance.php?id=<?php echo $row['machine_id']; ?>" style="color:orange;">Report Issue</a>
+                                    <a href="?delete=<?php echo $row['machine_id']; ?>" style="color:#d32f2f;" onclick="return confirm('Delete?')">DEL</a>
+                                    <a href="maintenance.php?id=<?php echo $row['machine_id']; ?>" style="color:#f57c00;">MAINT</a>
                                 <?php } elseif($row['status']=='MAINTENANCE') { ?>
-                                    <a href="maintenance.php?action=finish&id=<?php echo $row['machine_id']; ?>" style="color:green;">Mark Fixed</a>
-                                <?php } else { echo "In Use"; } ?>
+                                    <a href="maintenance.php?action=finish&id=<?php echo $row['machine_id']; ?>" style="color:green;">FIXED</a>
+                                <?php } else { echo "IN USE"; } ?>
                             </td>
                         </tr>
                         <?php } ?>
                     </tbody>
                 </table>
+                <?php } else { echo "<p style='color:#666; margin-top:20px;'>No machines listed.</p>"; } ?>
             </div>
         </div>
 
@@ -141,7 +241,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
     ?>
         <div class="card" style="max-width:600px; margin:0 auto;">
             <h3>Edit Company Profile</h3>
-            <form method="POST" action="?view=profile">
+            <form method="POST" action="?view=profile" style="padding:0; box-shadow:none; width:auto; border:none; border-top:none;">
                 <label>Owner Name:</label>
                 <input type="text" name="name" value="<?php echo htmlspecialchars($user['name']); ?>" required>
                 
@@ -154,10 +254,10 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
                 <label>Address:</label>
                 <input type="text" name="address" value="<?php echo htmlspecialchars($user['address']); ?>">
 
-                <label style="color:red; margin-top:20px;">New Password:</label>
+                <label style="color:#d32f2f; margin-top:20px;">New Password:</label>
                 <input type="password" name="password" placeholder="Leave blank to keep current">
 
-                <button type="submit" name="update_profile" style="background:#007bff; margin-top:20px;">Update Profile</button>
+                <button type="submit" name="update_profile">Update Profile</button>
             </form>
         </div>
     <?php } ?>
